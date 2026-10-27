@@ -1,0 +1,8 @@
+# Tabla `source_rank` (doc 05 §2): desempata eventos con el mismo `ts_available`.
+# Fija y versionada: cambiarla cambia el orden de procesamiento, así que cualquier cambio
+# sube `version` y queda registrado en el manifiesto de cada corrida.
+#
+# Cada fuente se clasifica por su categoría: `CLOCK`, `USER` o el nombre del venue.
+# Orden de la versión 1: CLOCK < USER < venues en orden alfabético.
+version = 1
+order = ["CLOCK", "USER", "BINANCE", "BINGX", "BLOFIN", "BYBIT", "MEXC", "PAPER"]

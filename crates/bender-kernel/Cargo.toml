@@ -5,7 +5,21 @@ edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 publish.workspace = true
-description = "Núcleo temporal (doc 05). Placeholder: existe para que los lints del Pilar 2 rijan desde el principio."
+description = "Núcleo temporal (doc 05): orden total, fusión de fuentes, reloj, velas y as_of."
 
 [lints]
 workspace = true
+
+[dependencies]
+bender-types = { path = "../bender-types" }
+blake3 = "1"
+serde = { version = "1", features = ["derive"] }
+toml = "0.9"
+
+[dev-dependencies]
+criterion = "0.8"
+proptest = "1"
+
+[[bench]]
+name = "merge"
+harness = false
