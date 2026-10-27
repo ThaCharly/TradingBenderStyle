@@ -1,0 +1,7 @@
+packages:
+  - "apps/client"
+  - "apps/client/packages/*"
+
+# buf funciona sin su script de instalación (el binario viene en un paquete opcional).
+ignoredBuiltDependencies:
+  - "@bufbuild/buf"

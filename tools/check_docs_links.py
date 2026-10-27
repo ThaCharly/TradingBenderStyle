@@ -6,12 +6,13 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 LINK = re.compile(r"\[[^\]]*\]\(([^)\s]+)\)")
+SKIP_DIRS = {".git", "node_modules", "target", ".venv", "dist"}
 
 
 def main() -> int:
     broken = []
     for md in ROOT.rglob("*.md"):
-        if ".git" in md.parts:
+        if SKIP_DIRS.intersection(md.parts):
             continue
         for target in LINK.findall(md.read_text(encoding="utf-8")):
             if target.startswith(("http://", "https://", "mailto:", "#")):

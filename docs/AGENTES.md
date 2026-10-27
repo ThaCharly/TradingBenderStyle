@@ -8,6 +8,23 @@ conversaciones previas. Antes de empezar:
 3. Trabajá en una rama `issue-<número>-<slug>` creada desde `main` y abrí un PR hacia `main`
    que diga `Closes #<número>`. Detalle en [RAMAS.md](RAMAS.md).
 
+## Entorno
+
+```sh
+make setup   # una vez
+make check   # antes de cada PR: lo mismo que la CI
+```
+
+Requisitos y detalles en el [README](../README.md) y en
+[00-estructura-del-repo.md](arquitectura/00-estructura-del-repo.md).
+
+## Alcance
+
+- Implementá **sólo** lo que pide el issue. No adelantes funcionalidades de otros issues
+  aunque parezcan obvias; si algo falta para cumplir un criterio, comentalo.
+- Si la documentación no alcanza para decidir algo, **no inventes**: anotá la pregunta en el
+  PR (sección "Huecos de documentación") y elegí la opción más conservadora, o pará.
+
 ## Reglas que no se negocian
 
 - **Pilar 2**: ningún crate de `bender-kernel`, `bender-engine`, `bender-runner` ni
@@ -25,8 +42,9 @@ conversaciones previas. Antes de empezar:
 
 - [ ] Todos los criterios de aceptación del issue se cumplen y son verificables con un
       comando o un test nombrado en el PR.
-- [ ] `cargo fmt --check`, `cargo clippy -- -D warnings`, `cargo test --workspace` (y los
-      equivalentes de TS/Python si aplica) pasan.
+- [ ] `make check` pasa.
 - [ ] Los tests nuevos corren sin red, salvo los marcados `#[ignore]` de testnet.
 - [ ] Ninguna clave, token ni dato personal en el repo.
 - [ ] Documentación actualizada si cambió algo especificado.
+- [ ] El PR incluye: `Closes #<n>`, la lista de criterios con el test o comando que verifica
+      cada uno, y la sección "Huecos de documentación" (vacía si no hubo).

@@ -29,7 +29,7 @@ crates/                         workspace de Rust
   bender-notify                 notificaciones (push, Telegram)
   bender-llm-gateway            binario: servidor de herramientas del LLM
   bender-py                     bindings PyO3 del kernel/engine/runner
-python/bender_research/         estadística, calibración, ML (uv)
+python/                         proyecto uv; paquete en python/src/bender_research
 apps/client/                    front TypeScript (Vite, pnpm)
   packages/chart-scene          modelo de escena (ADR-0001)
   packages/render-lwc           adaptador Lightweight Charts
@@ -42,9 +42,17 @@ docs/                           plan, arquitectura, ADRs, roadmap
 
 ## Herramientas
 
-| Lenguaje | Herramienta | Comando de verificación |
-|---|---|---|
-| Rust (stable) | cargo, clippy, rustfmt | `cargo fmt --check && cargo clippy --workspace -- -D warnings && cargo test --workspace` |
-| TypeScript | pnpm, Vite, Vitest, Playwright | `pnpm -r lint && pnpm -r test` |
-| Python | uv, ruff, pytest | `uv run ruff check && uv run pytest` |
-| Protobuf | buf | `buf lint && buf breaking --against .git#branch=main` |
+Todos los chequeos se corren con `make` desde la raíz; son los mismos que la CI
+(`.github/workflows/ci.yml`). `make check` corre todo.
+
+| Área | Herramientas | Target | Qué corre |
+|---|---|---|---|
+| Docs | Python stdlib | `make docs` | `tools/check_docs_links.py` (enlaces internos) |
+| Rust | toolchain fijada en `rust-toolchain.toml`, clippy, rustfmt | `make rust` | `cargo fmt --check`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo test --workspace` |
+| TypeScript | pnpm (workspace en la raíz), TypeScript 6.0, Vite, Vitest, ESLint + typescript-eslint | `make ts` | `pnpm -r lint` (incluye `tsc --noEmit`), `pnpm -r test` |
+| Python | uv (proyecto en `python/`), ruff, pytest | `make python` | `ruff check`, `ruff format --check`, `pytest` |
+| Protobuf | buf (dependencia de pnpm; `buf.yaml` en la raíz, módulo `schema/`) | `make buf` | `buf lint` (el chequeo de cambios incompatibles contra `main` lo agrega #17) |
+
+Notas:
+- TypeScript está fijado en `~6.0` porque typescript-eslint todavía no soporta la 7.
+- Playwright se agrega cuando haga falta el primer test e2e (#48).
