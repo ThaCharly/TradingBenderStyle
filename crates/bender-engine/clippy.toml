@@ -1,0 +1,12 @@
+# Pilar 2 (doc 05 §3): este crate no lee el reloj del sistema. El tiempo es el
+# `ts_available` del evento que se procesa. Lista verificada por tools/arch-tests
+# (rules.toml, sección [clock]); `disallowed_methods` es `forbid` en el workspace.
+disallowed-methods = [
+  { path = "std::time::SystemTime::now", reason = "Pilar 2: usar el ts_available del evento (doc 05 §3)" },
+  { path = "std::time::SystemTime::elapsed", reason = "Pilar 2: usar el ts_available del evento (doc 05 §3)" },
+  { path = "std::time::Instant::now", reason = "Pilar 2: usar el ts_available del evento (doc 05 §3)" },
+  { path = "std::time::Instant::elapsed", reason = "Pilar 2: usar el ts_available del evento (doc 05 §3)" },
+  { path = "chrono::Utc::now", reason = "Pilar 2: usar el ts_available del evento (doc 05 §3)", allow-invalid = true },
+  { path = "chrono::Local::now", reason = "Pilar 2: usar el ts_available del evento (doc 05 §3)", allow-invalid = true },
+  { path = "ulid::Ulid::new", reason = "Pilar 2: lee el reloj; usar bender_types::Ulid::from_parts", allow-invalid = true },
+]

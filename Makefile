@@ -13,6 +13,7 @@ rust:
 	cargo fmt --check
 	cargo clippy --workspace --all-targets -- -D warnings
 	cargo test --workspace
+	cargo run -q -p arch-tests
 
 ts:
 	pnpm -r lint

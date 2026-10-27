@@ -1,0 +1,51 @@
+# Reglas de arquitectura que custodian los pilares. Las verifica `cargo run -p arch-tests`
+# (parte de `make rust` y de la CI). Explicación de cada regla: docs/AGENTES.md.
+#
+# Patrones de crate: nombre exacto, o prefijo terminado en `*` (p. ej. "bender-venue-*").
+
+# Pilar 2 (doc 05 §3): estos crates no leen el reloj del sistema. Cada uno tiene que tener
+# un clippy.toml cuyo `disallowed-methods` incluya todos estos métodos.
+[clock]
+crates = ["bender-kernel", "bender-engine", "bender-runner", "bender-venue-sim"]
+methods = [
+  "std::time::SystemTime::now",
+  "std::time::SystemTime::elapsed",
+  "std::time::Instant::now",
+  "std::time::Instant::elapsed",
+  "chrono::Utc::now",
+  "chrono::Local::now",
+  "ulid::Ulid::new",
+]
+
+# Pilar 3 (doc 03 §1): sólo `bender-execution` usa las capacidades de trading privado de
+# los adaptadores (feature `private`).
+[[feature_restricted]]
+id = "pilar3-trading-privado"
+description = "sólo bender-execution puede depender de un adaptador de venue con la feature `private`"
+crates = [
+  "bender-venue-binance",
+  "bender-venue-blofin",
+  "bender-venue-bingx",
+  "bender-venue-bybit",
+  "bender-venue-mexc",
+]
+feature = "private"
+allowed = ["bender-execution"]
+
+# ADR-0006 y ADR-0013 (doc 08, capa 1): el servidor de herramientas del LLM no tiene
+# camino a la ejecución. El issue #20 lo nombra `bender-llm-gateway`; ADR-0013 lo
+# reemplazó por `bender-mcp`. Se cubren los dos nombres.
+[[forbidden]]
+id = "adr0006-llm-sin-ejecucion"
+description = "el servidor de herramientas del LLM no depende (ni transitivamente) del cliente de comandos ni de execution"
+from = ["bender-mcp", "bender-llm-gateway"]
+to = ["bender-commands-client", "bender-execution"]
+transitive = true
+
+# Pilar 3: el análisis no toca venues ni ejecución.
+[[forbidden]]
+id = "pilar3-analisis-sin-venues"
+description = "bender-engine y bender-kernel no dependen (ni transitivamente) de ningún crate de venue ni de execution"
+from = ["bender-engine", "bender-kernel"]
+to = ["bender-venue-*", "bender-execution"]
+transitive = true

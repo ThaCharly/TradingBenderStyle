@@ -14,7 +14,15 @@ pub use id::{Ulid, UlidError};
 pub use time::{DurationNs, TimestampNs};
 
 /// Mensajes generados desde `schema/bender/v1` con `make gen`. No editar a mano.
-#[allow(clippy::all, clippy::pedantic, missing_docs)]
+///
+/// Se permiten lints puntuales y no grupos: `clippy::all` incluye `disallowed_methods`,
+/// que es `forbid` en el workspace (Pilar 2).
+#[allow(
+    missing_docs,
+    clippy::large_enum_variant,
+    clippy::doc_lazy_continuation,
+    clippy::doc_overindented_list_items
+)]
 pub mod proto {
     include!("gen/bender.v1.rs");
 }
