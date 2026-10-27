@@ -13,7 +13,7 @@ mod time;
 pub use decimal::{Decimal, DecimalError, MAX_SCALE};
 pub use id::{Ulid, UlidError};
 pub use source::source_key;
-pub use time::{DurationNs, TimestampNs};
+pub use time::{DurationNs, NS_PER_DAY, TimestampNs, civil_from_days, days_from_civil};
 
 /// Mensajes generados desde `schema/bender/v1` con `make gen`. No editar a mano.
 ///

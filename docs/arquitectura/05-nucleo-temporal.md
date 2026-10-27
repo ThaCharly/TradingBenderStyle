@@ -68,13 +68,21 @@ Los δ son parte de la configuración versionada y se registran en el manifiesto
   aplica igual, pero genera un `BarRevision` (revisión n+1) con su propio `ts_available`.
 - El motor, por defecto, usa la **primera versión cerrada** de cada vela (la que se conocía
   en ese momento). Las revisiones existen y son consultables `as_of`.
+- Las velas cerradas se conservan para revisión durante un horizonte configurable (default
+  24 h). Un trade más viejo que eso no cambia ninguna vela y queda contado como descartado.
+  Si hay que recuperar datos más viejos, se re-agrega desde el store.
 
 ## 6. Velas
 
-- Alineadas al epoch UTC por temporalidad. Semana: lunes 00:00 UTC. Mes y año:
-  calendario UTC. Personalizadas: múltiplos de 1 s alineados al epoch.
-- Una vela de `[t, t+d)` **cierra** cuando la marca de agua de su fuente supera `t+d`, o
-  cuando llega un latido con `ts_available ≥ t + d + L`, lo que ocurra primero.
+- Alineadas al epoch UTC por temporalidad. Semana: lunes 00:00 UTC. Mes, trimestre y
+  año: calendario UTC. Personalizadas: múltiplos de 1 s alineados al epoch. **3D** también
+  se alinea al epoch: bloques de 3 días desde 1970-01-01, sin relación con el lunes ni con
+  el día 1 del mes.
+- Temporalidades estándar: 1s, 5s, 15s, 1m, 3m, 5m, 15m, 30m, 1h, 2h, 4h, 6h, 12h, 1D, 3D,
+  1W, 1M, 3M, 1Y. Todas se agregan **desde los trades**, sin derivar unas de otras.
+- Una vela de `[t, t+d)` **cierra** cuando la marca de agua de su fuente alcanza `t+d`
+  (`max ts_event − L ≥ t+d`), o cuando llega un latido con `ts_available ≥ t + d + L`, lo
+  que ocurra primero.
 - Antes de cerrar, la vela existe como **en formación** (`forming`) y se actualiza.
 - Campos: OHLC, volumen base, volumen quote, volumen comprador/vendedor (agresor),
   cantidad de trades, primer y último `ts_event`, revisión, fuentes incluidas.
