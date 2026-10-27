@@ -51,7 +51,7 @@ Todos los chequeos se corren con `make` desde la raíz; son los mismos que la CI
 | Docs | Rust (`tools/devtools`) | `make docs` | `check-docs-links` (enlaces internos) |
 | Rust | toolchain fijada en `rust-toolchain.toml`, clippy, rustfmt | `make rust` | `cargo fmt --check`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo test --workspace` |
 | TypeScript | pnpm (workspace en la raíz), TypeScript 6.0, Vite, Vitest, ESLint + typescript-eslint | `make ts` | `pnpm -r lint` (incluye `tsc --noEmit`), `pnpm -r test` |
-| Protobuf | buf (dependencia de pnpm; `buf.yaml` en la raíz, módulo `schema/`) | `make buf` | `buf lint` (el chequeo de cambios incompatibles contra `main` lo agrega #17) |
+| Protobuf | buf (dependencia de pnpm; `buf.yaml` en la raíz, módulo `schema/`) | `make buf` | `buf lint`, `buf breaking` contra `origin/main` y `check-schema` (sin `float`/`double`; todo escalar con presencia explícita o marcado `[requerido]`) |
 
 Notas:
 - Sin Python ([ADR-0012](../decisiones/ADR-0012-sin-python.md)).

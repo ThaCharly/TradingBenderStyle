@@ -18,5 +18,8 @@ ts:
 	pnpm -r lint
 	pnpm -r test
 
+# `buf breaking` compara contra origin/main: hacer `git fetch origin main` si está viejo.
 buf:
 	pnpm buf:lint
+	pnpm buf:breaking
+	cargo run -q -p bender-devtools --bin check-schema

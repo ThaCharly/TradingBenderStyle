@@ -1,5 +1,7 @@
 //! Herramientas de desarrollo del repositorio.
 
+pub mod schema;
+
 use std::path::{Path, PathBuf};
 
 /// Directorios que no son documentación del proyecto.

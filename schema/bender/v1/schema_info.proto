@@ -1,10 +1,10 @@
 syntax = "proto3";
 
-// Paquete del modelo de datos universal (Pilar 1). Los mensajes reales llegan con #17 y #18.
+// Paquete del modelo de datos universal (Pilar 1). Convenciones en identity.proto.
 package bender.v1;
 
 // Identifica la versión del esquema que produce o consume un componente.
 message SchemaInfo {
-  // Versión semántica del esquema, p. ej. "1.0.0".
+  // Versión semántica del esquema, p. ej. "1.0.0". [requerido]
   string version = 1;
 }

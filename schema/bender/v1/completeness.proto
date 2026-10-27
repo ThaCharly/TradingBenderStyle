@@ -1,0 +1,90 @@
+syntax = "proto3";
+
+package bender.v1;
+
+import "bender/v1/identity.proto";
+
+// Completitud de datos y recuperación de huecos (ADR-0011).
+
+// "Se cortó la fuente y no sé qué pasó en [from_ts, to_ts)". Se emite al detectarlo, con
+// `ts_available` del momento de la detección. La recuperación nunca lo borra.
+message Gap {
+  Ulid gap_id = 1;
+  // Fuente afectada (venue + instrumento + tipo de dato).
+  SourceId source = 2;
+  // Inicio del hueco, ns UTC: último dato visto. [requerido]
+  int64 from_ts = 3;
+  // Fin del hueco, ns UTC: primer dato visto tras reconectar. [requerido]
+  int64 to_ts = 4;
+  GapReason reason = 5;
+  // Detalle libre para diagnóstico (mensaje de error, código de cierre…).
+  optional string detail = 6;
+}
+
+enum GapReason {
+  GAP_REASON_UNSPECIFIED = 0;
+  // Se cayó la conexión.
+  GAP_REASON_DISCONNECTED = 1;
+  // Salto en la secuencia de la fuente (ids de trade, `venue_seq` del libro).
+  GAP_REASON_SEQUENCE_BREAK = 2;
+  // La fuente dejó de mandar datos sin cerrar la conexión.
+  GAP_REASON_STALE = 3;
+  // El grabador estuvo detenido.
+  GAP_REASON_PROCESS_DOWN = 4;
+  // El venue avisó mantenimiento o interrupción.
+  GAP_REASON_VENUE_OUTAGE = 5;
+}
+
+// Resultado del intento de recuperar un hueco desde el proveedor. Los datos recuperados
+// llegan aparte con `provenance = recovered` y un `ts_available` posterior.
+message GapRecovery {
+  Ulid gap_id = 1;
+  // Intervalo efectivamente recuperado, ns UTC. Ausente si `result` es NONE.
+  optional int64 recovered_from = 2;
+  optional int64 recovered_to = 3;
+  RecoveryMethod method = 4;
+  RecoveryResult result = 5;
+}
+
+enum RecoveryMethod {
+  RECOVERY_METHOD_UNSPECIFIED = 0;
+  // REST por rango de ids (trades con ids secuenciales).
+  RECOVERY_METHOD_REST_BY_ID = 1;
+  // REST por rango de tiempo.
+  RECOVERY_METHOD_REST_BY_TIME = 2;
+  // Archivos históricos del proveedor.
+  RECOVERY_METHOD_HISTORICAL_FILES = 3;
+  // Snapshot nuevo para resincronizar (libro); no recupera el intervalo.
+  RECOVERY_METHOD_RESNAPSHOT = 4;
+  // No hay forma de recuperar este tipo de dato.
+  RECOVERY_METHOD_NONE = 5;
+}
+
+enum RecoveryResult {
+  RECOVERY_RESULT_UNSPECIFIED = 0;
+  RECOVERY_RESULT_FULL = 1;
+  RECOVERY_RESULT_PARTIAL = 2;
+  RECOVERY_RESULT_NONE = 3;
+}
+
+// Estado de completitud de un intervalo de una fuente.
+enum CoverageState {
+  COVERAGE_STATE_UNSPECIFIED = 0;
+  // Grabado en vivo sin interrupción (o con continuidad verificada).
+  COVERAGE_STATE_COMPLETE = 1;
+  // Hubo un hueco y se rellenó después desde el proveedor.
+  COVERAGE_STATE_RECOVERED = 2;
+  // Hubo un hueco y no se pudo rellenar, o sólo en parte.
+  COVERAGE_STATE_INCOMPLETE = 3;
+}
+
+// Intervalo [from_ts, to_ts) de una fuente con su completitud; lo devuelve
+// `coverage(source, rango, as_of)`.
+message CoverageInterval {
+  SourceId source = 1;
+  // ns UTC, inclusive. [requerido]
+  int64 from_ts = 2;
+  // ns UTC, exclusivo. [requerido]
+  int64 to_ts = 3;
+  CoverageState state = 4;
+}

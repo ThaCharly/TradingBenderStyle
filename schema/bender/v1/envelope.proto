@@ -1,0 +1,50 @@
+syntax = "proto3";
+
+package bender.v1;
+
+import "bender/v1/completeness.proto";
+import "bender/v1/identity.proto";
+import "bender/v1/market.proto";
+import "bender/v1/user.proto";
+
+// Sobre de todo evento que entra al núcleo (doc 05 §1). Orden total:
+// K = (ts_available, source_rank(source), source_seq, ingest_seq) (doc 05 §2).
+message Envelope {
+  // Cuándo pasó según la fuente, ns UTC. [requerido]
+  int64 ts_event = 1;
+  // Cuándo llegó a nuestro servidor, ns UTC. Sólo en lo grabado en vivo.
+  optional int64 ts_received = 2;
+  // Cuándo el núcleo puede usarlo, ns UTC. [requerido]
+  int64 ts_available = 3;
+  SourceId source = 4;
+  // Secuencia de la fuente (`venue_seq` en doc 01 §4), si existe.
+  optional uint64 source_seq = 5;
+  // Secuencia propia, monótona por fuente. [requerido]
+  uint64 ingest_seq = 6;
+  Provenance provenance = 7;
+
+  oneof payload {
+    MarketEvent market = 8;
+    UserEvent user = 9;
+    Heartbeat heartbeat = 10;
+    Gap gap = 11;
+    GapRecovery gap_recovery = 12;
+  }
+}
+
+// Procedencia del evento (ADR-0011).
+enum Provenance {
+  PROVENANCE_UNSPECIFIED = 0;
+  // Visto en vivo.
+  PROVENANCE_LIVE = 1;
+  // Rellenado después de un hueco.
+  PROVENANCE_RECOVERED = 2;
+  // Importación histórica masiva (dumps).
+  PROVENANCE_BACKFILL = 3;
+  // Generado por el sistema (p. ej. latidos sintéticos del histórico).
+  PROVENANCE_SYNTHETIC = 4;
+}
+
+// Latido de reloj (doc 05 §3): cada G = 100 ms en vivo, con `ts_available` = reloj de
+// pared. Se graba como cualquier evento. El instante va en el sobre.
+message Heartbeat {}
