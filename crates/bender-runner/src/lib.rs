@@ -16,6 +16,8 @@
 
 mod consumer;
 mod dataset;
+pub mod golden;
+pub mod normative;
 mod source;
 
 use std::collections::BTreeMap;
@@ -65,6 +67,17 @@ impl<C: Consumer> Runner<C> {
     pub fn new(config: KernelConfig, consumer: C) -> Self {
         Self {
             state: KernelState::new(config),
+            consumer,
+            kernel_out: Vec::new(),
+            consumer_hash: [0; 32],
+            outputs: 0,
+        }
+    }
+
+    /// Runner que retoma desde un estado del núcleo (p. ej. un checkpoint).
+    pub fn from_state(state: KernelState, consumer: C) -> Self {
+        Self {
+            state,
             consumer,
             kernel_out: Vec::new(),
             consumer_hash: [0; 32],
