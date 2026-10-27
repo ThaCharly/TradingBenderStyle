@@ -61,3 +61,5 @@ jobs:
       - name: main para buf breaking
         run: git fetch --no-tags --depth=1 origin main:refs/remotes/origin/main
       - run: make buf
+      - name: Código generado al día
+        run: make gen-check

@@ -1,0 +1,10 @@
+# Generación de tipos TypeScript (`make gen`). Los de Rust los genera
+# tools/devtools (bin gen-types) con prost, sin protoc.
+version: v2
+clean: true
+plugins:
+  - local: protoc-gen-es
+    out: apps/client/packages/types/src/gen
+    opt:
+      - target=ts
+      - import_extension=none

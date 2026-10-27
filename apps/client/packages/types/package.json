@@ -1,0 +1,17 @@
+{
+  "name": "@bender/types",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "scripts": {
+    "lint": "tsc --noEmit && eslint .",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@bufbuild/protobuf": "2.16.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "vitest": "^5.0.5"
+  }
+}

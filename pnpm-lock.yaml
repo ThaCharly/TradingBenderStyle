@@ -11,6 +11,9 @@ importers:
       '@bufbuild/buf':
         specifier: ^1.75.0
         version: 1.75.0
+      '@bufbuild/protoc-gen-es':
+        specifier: 2.16.0
+        version: 2.16.0(@bufbuild/protobuf@2.16.0)
       '@eslint/js':
         specifier: ^10.0.1
         version: 10.0.1(eslint@10.13.0)
@@ -31,16 +34,29 @@ importers:
     devDependencies:
       vite:
         specifier: ^8.3.5
-        version: 8.3.5
+        version: 8.3.5(@types/node@22.20.5)
       vitest:
         specifier: ^5.0.5
-        version: 5.0.5(vite@8.3.5)
+        version: 5.0.5(@types/node@22.20.5)(vite@8.3.5(@types/node@22.20.5))
 
   apps/client/packages/chart-scene:
     devDependencies:
       vitest:
         specifier: ^5.0.5
-        version: 5.0.5(vite@8.3.5)
+        version: 5.0.5(@types/node@22.20.5)(vite@8.3.5(@types/node@22.20.5))
+
+  apps/client/packages/types:
+    dependencies:
+      '@bufbuild/protobuf':
+        specifier: 2.16.0
+        version: 2.16.0
+    devDependencies:
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.20.5
+      vitest:
+        specifier: ^5.0.5
+        version: 5.0.5(@types/node@22.20.5)(vite@8.3.5(@types/node@22.20.5))
 
 packages:
 
@@ -90,6 +106,22 @@ packages:
     resolution: {integrity: sha512-uMuBCULLDax9/3d5Lo9mea38vuPDv4mrRVE4XfSq3qPcD5UUxlg0RJ9hm84lYCzI3A3lIvLeChxrw9c1RUiD2w==}
     engines: {node: '>=12'}
     hasBin: true
+
+  '@bufbuild/protobuf@2.16.0':
+    resolution: {integrity: sha512-FWa0sPlqYGJgpTs6OxBRcL/AW4JT0OIO+W1ajerluoTVh8CV0B7XM1qsNCRgnkSCkRCgOICKHRQlY17jrsm0+Q==}
+
+  '@bufbuild/protoc-gen-es@2.16.0':
+    resolution: {integrity: sha512-LbPrEaGd7bOxKbJHllTR5439+PZjqd6fM7xyDZkDVtZ+Efzr7TMdMqShG9Qkf/nYVyiNS/SK5r9JhRaBTFkfZw==}
+    engines: {node: '>=22'}
+    hasBin: true
+    peerDependencies:
+      '@bufbuild/protobuf': 2.16.0
+    peerDependenciesMeta:
+      '@bufbuild/protobuf':
+        optional: true
+
+  '@bufbuild/protoplugin@2.16.0':
+    resolution: {integrity: sha512-3FdYJys34VhFnBQsjiV9wurBkX/DBACQAkAk+nCKdO1p8ROVNi7gmaRAcba+4qq8hQq8rYVukuutwvGCvd4kJA==}
 
   '@cacheable/memory@2.2.0':
     resolution: {integrity: sha512-CTLKqLItRCEixEAewD3/j9DB3/o96gpTPD4eJ1v+DGOlxZRZncRQkGYqqnAGCscYd6RNeXfGeiuCphsPtqyIfQ==}
@@ -286,6 +318,9 @@ packages:
   '@types/json-schema@7.0.15':
     resolution: {integrity: sha512-5+fP8P8MFNC+AyZCDxrB2pkZFPGzqQWUzpSeuuVLvm8VMcorNYavBqoFcxK8bQz4Qsbn4oUEEem4wDLfcysGHA==}
 
+  '@types/node@22.20.5':
+    resolution: {integrity: sha512-U2+DNr+wSjpsTS/wZGYHq7GcwfuSmKiKvoPvK22zwTlRhU91yOniN4qRR5KhIjvif7ysw/dz/hKmfDH0Ris4aA==}
+
   '@typescript-eslint/eslint-plugin@8.72.1':
     resolution: {integrity: sha512-5CokTWXpmbylfFabsbvHC0CAw3XLaGnoa+nFJX5FR592h/LoZsENUE6p/rg5xvkKrFEXz6pYmgI29AgXc2N3BQ==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
@@ -344,6 +379,11 @@ packages:
   '@typescript-eslint/visitor-keys@8.72.1':
     resolution: {integrity: sha512-SB8xqipSzZHUePCCLNeYxqnxq83X61/qzNhjQGbTfjxGZIeOEP7tBgWYX05Tcd6CgE02WdTJnh5b8kMZJ/+bnQ==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
+
+  '@typescript/vfs@1.6.5':
+    resolution: {integrity: sha512-gobLHQLmvQGJInFk31NvgMd1uYzRXsd8qgnOssyLD055R2QPnw1ubRbBQ4+T+5qC7IQVuYXdvNDE2G7tMDVHgw==}
+    peerDependencies:
+      typescript: '*'
 
   '@vitest/mocker@5.0.5':
     resolution: {integrity: sha512-xLL3lkDegJZw+MGoGaCCsFayDZthGgpAtr3Vziyfc4p7xH89K7KRPcRBBh/kEYm0Aqkt5DtTmkYpBtRV/FrHZg==}
@@ -750,10 +790,18 @@ packages:
       eslint: ^8.57.0 || ^9.0.0 || ^10.0.0
       typescript: '>=4.8.4 <6.1.0'
 
+  typescript@5.4.5:
+    resolution: {integrity: sha512-vcI4UpRgg81oIRUFwR0WSIHKt11nJ7SAVlYNIu+QpqeyXP+gpQJy/Z4+F0aGxSE4MqwjyXvW/TzgkLAx2AGHwQ==}
+    engines: {node: '>=14.17'}
+    hasBin: true
+
   typescript@6.0.3:
     resolution: {integrity: sha512-y2TvuxSZPDyQakkFRPZHKFm+KKVqIisdg9/CZwm9ftvKXLP8NRWj38/ODjNbr43SsoXqNuAisEf1GdCxqWcdBw==}
     engines: {node: '>=14.17'}
     hasBin: true
+
+  undici-types@6.21.0:
+    resolution: {integrity: sha512-iwDZqg0QAGrg9Rav5H4n0M64c3mkR59cJ6wQp+7C4nI0gsmExaedaYLNO44eT4AtBBwjbTiGPMlt2Md0T9H9JQ==}
 
   uri-js@4.4.1:
     resolution: {integrity: sha512-7rKUyy33Q1yc98pQ1DAmLtwX109F7TIfWlW1Ydo8Wl1ii1SeHieeh0HHfPeL2fMXK6z0s8ecKs9frCuLJvndBg==}
@@ -892,6 +940,24 @@ snapshots:
       '@bufbuild/buf-linux-x64': 1.75.0
       '@bufbuild/buf-win32-arm64': 1.75.0
       '@bufbuild/buf-win32-x64': 1.75.0
+
+  '@bufbuild/protobuf@2.16.0': {}
+
+  '@bufbuild/protoc-gen-es@2.16.0(@bufbuild/protobuf@2.16.0)':
+    dependencies:
+      '@bufbuild/protoplugin': 2.16.0
+    optionalDependencies:
+      '@bufbuild/protobuf': 2.16.0
+    transitivePeerDependencies:
+      - supports-color
+
+  '@bufbuild/protoplugin@2.16.0':
+    dependencies:
+      '@bufbuild/protobuf': 2.16.0
+      '@typescript/vfs': 1.6.5(typescript@5.4.5)
+      typescript: 5.4.5
+    transitivePeerDependencies:
+      - supports-color
 
   '@cacheable/memory@2.2.0':
     dependencies:
@@ -1034,6 +1100,10 @@ snapshots:
 
   '@types/json-schema@7.0.15': {}
 
+  '@types/node@22.20.5':
+    dependencies:
+      undici-types: 6.21.0
+
   '@typescript-eslint/eslint-plugin@8.72.1(@typescript-eslint/parser@8.72.1(eslint@10.13.0)(typescript@6.0.3))(eslint@10.13.0)(typescript@6.0.3)':
     dependencies:
       '@eslint-community/regexpp': 4.12.2
@@ -1125,14 +1195,21 @@ snapshots:
       '@typescript-eslint/types': 8.72.1
       eslint-visitor-keys: 5.0.1
 
-  '@vitest/mocker@5.0.5(vite@8.3.5)':
+  '@typescript/vfs@1.6.5(typescript@5.4.5)':
+    dependencies:
+      debug: 4.4.3
+      typescript: 5.4.5
+    transitivePeerDependencies:
+      - supports-color
+
+  '@vitest/mocker@5.0.5(vite@8.3.5(@types/node@22.20.5))':
     dependencies:
       '@jridgewell/trace-mapping': 0.3.31
       '@vitest/spy': 5.0.5
       estree-walker: 3.0.3
       magic-string: 1.4.5
     optionalDependencies:
-      vite: 8.3.5
+      vite: 8.3.5(@types/node@22.20.5)
 
   '@vitest/spy@5.0.5': {}
 
@@ -1495,13 +1572,17 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
+  typescript@5.4.5: {}
+
   typescript@6.0.3: {}
+
+  undici-types@6.21.0: {}
 
   uri-js@4.4.1:
     dependencies:
       punycode: 2.3.1
 
-  vite@8.3.5:
+  vite@8.3.5(@types/node@22.20.5):
     dependencies:
       lightningcss: 1.33.0
       picomatch: 4.0.7
@@ -1509,12 +1590,13 @@ snapshots:
       rolldown: 1.2.15
       tinyglobby: 0.2.17
     optionalDependencies:
+      '@types/node': 22.20.5
       fsevents: 2.3.3
 
-  vitest@5.0.5(vite@8.3.5):
+  vitest@5.0.5(@types/node@22.20.5)(vite@8.3.5(@types/node@22.20.5)):
     dependencies:
       '@types/chai': 5.2.3
-      '@vitest/mocker': 5.0.5(vite@8.3.5)
+      '@vitest/mocker': 5.0.5(vite@8.3.5(@types/node@22.20.5))
       chai: 6.3.0
       es-module-lexer: 2.3.2
       expect-type: 1.4.0
@@ -1525,8 +1607,10 @@ snapshots:
       tinybench: 6.2.2
       tinyexec: 1.3.1
       tinyglobby: 0.2.17
-      vite: 8.3.5
+      vite: 8.3.5(@types/node@22.20.5)
       why-is-node-running: 3.2.1
+    optionalDependencies:
+      '@types/node': 22.20.5
     transitivePeerDependencies:
       - msw
 

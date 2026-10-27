@@ -31,6 +31,7 @@ crates/                         workspace de Rust
   bender-research               estadística, calibración y validación (M9; ADR-0012)
   bender-lab                    CLI de research: datasets, reportes HTML/JSON
 apps/client/                    front TypeScript (Vite, pnpm)
+  packages/types                tipos TS generados del esquema (`@bender/types`) + Decimal
   packages/chart-scene          modelo de escena (ADR-0001)
   packages/render-lwc           adaptador Lightweight Charts
   packages/ui                   componentes (ticket, diario, auditoría…)
@@ -46,11 +47,20 @@ docs/                           plan, arquitectura, ADRs, roadmap
 Todos los chequeos se corren con `make` desde la raíz; son los mismos que la CI
 (`.github/workflows/ci.yml`). `make check` corre todo.
 
+**Código generado.** Los tipos se generan del esquema y se commitean: `make gen` escribe
+`crates/bender-types/src/gen/` (prost, compilando el esquema con protox, sin `protoc`) y
+`apps/client/packages/types/src/gen/` (`buf generate` + `protoc-gen-es`, config en
+`buf.gen.yaml`). `make gen-check` (parte de `make check` y de la CI) falla si están
+desactualizados. Si cambiás el esquema: `make gen` y commitear el resultado. Los fixtures
+binarios del test de ida y vuelta Rust → TS se regeneran con
+`BENDER_UPDATE_FIXTURES=1 cargo test -p bender-types --test fixtures`.
+
 | Área | Herramientas | Target | Qué corre |
 |---|---|---|---|
 | Docs | Rust (`tools/devtools`) | `make docs` | `check-docs-links` (enlaces internos) |
 | Rust | toolchain fijada en `rust-toolchain.toml`, clippy, rustfmt | `make rust` | `cargo fmt --check`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo test --workspace` |
 | TypeScript | pnpm (workspace en la raíz), TypeScript 6.0, Vite, Vitest, ESLint + typescript-eslint | `make ts` | `pnpm -r lint` (incluye `tsc --noEmit`), `pnpm -r test` |
+| Código generado | `tools/devtools` (`gen-types`), buf + `protoc-gen-es` | `make gen-check` | regenera y falla si hay diferencias con lo commiteado |
 | Protobuf | buf (dependencia de pnpm; `buf.yaml` en la raíz, módulo `schema/`) | `make buf` | `buf lint`, `buf breaking` contra `origin/main` y `check-schema` (sin `float`/`double`; todo escalar con presencia explícita o marcado `[requerido]`) |
 
 Notas:
