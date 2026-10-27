@@ -26,7 +26,8 @@ make setup   # instala dependencias de TypeScript (Rust se resuelve solo con car
 make check   # corre exactamente lo mismo que la CI
 ```
 
-Chequeos por partes: `make docs`, `make rust`, `make ts`, `make buf`.
+Chequeos por partes: `make docs`, `make rust`, `make ts`, `make buf`, `make gen-check`.
+Después de cambiar `schema/`: `make gen` (regenera los tipos Rust y TS).
 
 El proyecto no usa Python ([ADR-0012](docs/decisiones/ADR-0012-sin-python.md)).
 

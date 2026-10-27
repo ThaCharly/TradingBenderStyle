@@ -10,10 +10,12 @@
     "lint": "pnpm -r lint",
     "test": "pnpm -r test",
     "buf:lint": "buf lint",
-    "buf:breaking": "buf breaking --against '.git#ref=origin/main'"
+    "buf:breaking": "buf breaking --against '.git#ref=origin/main'",
+    "buf:gen": "buf generate"
   },
   "devDependencies": {
     "@bufbuild/buf": "^1.75.0",
+    "@bufbuild/protoc-gen-es": "2.16.0",
     "@eslint/js": "^10.0.1",
     "eslint": "^10.13.0",
     "globals": "^17.13.0",

@@ -9,3 +9,10 @@ description = "Tipos base del dominio de TradingBenderStyle (se completa en #19)
 
 [lints]
 workspace = true
+
+[dependencies]
+prost = "0.14"
+ulid = { version = "3", default-features = false }
+
+[dev-dependencies]
+proptest = "1"
