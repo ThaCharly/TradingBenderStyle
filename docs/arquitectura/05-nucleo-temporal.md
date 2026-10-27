@@ -179,3 +179,9 @@ Implementación (`bender_kernel::state`):
    salida anterior.
 5. **Checkpoint = desde cero**: estado en `T` desde checkpoint = estado en `T` desde el
    inicio.
+
+Las cinco son una suite reutilizable (`bender_runner::normative`). Cada consumidor se
+registra con `register_consumer_for_normative_tests!` y la CI las corre con el consumidor de
+velas (incluidas las compuestas). El canario tiene un test de mutación: un consumidor que
+espía el próximo evento lo hace fallar. Cómo correr el test dorado (3) en el servidor:
+[test-dorado.md](../operacion/test-dorado.md).
