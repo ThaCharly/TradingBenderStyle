@@ -4,7 +4,21 @@
 > entiende niveles y eventos, y un diario de trading con memoria y fundamento.
 > Usuario único. Sin apuro. Bien hecho.
 
-Estado: **planeación**. Nada de código todavía.
+Estado: **planeación v3** (después de la [revisión arquitectónica](revision/2026-10-27-revision-arquitectonica.md)).
+Nada de código todavía.
+
+Mapa de documentos:
+- Arquitectura: [00 estructura del repo](arquitectura/00-estructura-del-repo.md) ·
+  [01 modelo de datos](arquitectura/01-modelo-de-datos.md) ·
+  [02 motor reproducible](arquitectura/02-motor-historico-reproducible.md) ·
+  [03 análisis/ejecución](arquitectura/03-separacion-analisis-ejecucion.md) ·
+  [04 probabilidades](arquitectura/04-probabilidades-auditables.md) ·
+  [05 núcleo temporal](arquitectura/05-nucleo-temporal.md) ·
+  [06 ejecución de futuros](arquitectura/06-ejecucion-futuros.md) ·
+  [07 topología](arquitectura/07-topologia-distribuida.md) ·
+  [08 aislamiento del LLM](arquitectura/08-aislamiento-llm.md)
+- Decisiones: [ADRs](decisiones/README.md)
+- Trabajo: [ROADMAP](ROADMAP.md) (milestones e issues) · [guía para agentes](AGENTES.md)
 
 ---
 
@@ -62,17 +76,21 @@ Y los principios que se derivan:
 ┌───────────────▼──────────── Mini-PC (casa, 24/7) ─────────────────┐
 │  api ── sólo lectura + reenvío de comandos firmados               │
 │                                                                   │
-│  marketdata      engine           llm-gateway      execution      │
-│  (ingesta +      (niveles,        (35B/9B en GPU,  (ÚNICO con     │
-│   grabador)       eventos,         tools sólo       claves; OMS,  │
-│                   estadística)     lectura)         paper, trig.) │
+│  recorder        runner/engine    query/journal    execution      │
+│  (ingesta +      (niveles,        (sólo lectura;   (ÚNICO con     │
+│   grabador)       eventos,         notas del LLM)   claves; OMS,  │
+│                   alertas)                          paper, trig.) │
 │                                                                   │
-│  ClickHouse (series) · Postgres (estado/diario) · Parquet (crudo)  │
+│  Parquet + DuckDB (datos) · Postgres (estado/diario)               │
 └───────────────────────────────────────────────────────────────────┘
         │ datos públicos                         │ privado (sólo execution)
         ▼                                        ▼
  Binance · BloFin · BingX · MEXC · Bybit (spot + perps)
 ```
+
+La estación (PC con GPU) corre `worker` (backtests, entrenamiento) y el `llm-gateway`
+grande. Cada componente puede moverse de nodo por configuración
+([doc 07](arquitectura/07-topologia-distribuida.md)).
 
 ### 2.1 Infraestructura en casa: lo que hay que resolver
 
@@ -163,13 +181,16 @@ macro**. Eso simplifica mucho: no hace falta feed en vivo al principio.
 Detalles técnicos: futuros como **continuos ajustados por roll**; NASDAQ vía **NQ**
 (el índice no tiene volumen propio); sesiones RTH/ETH, feriados y gaps de fin de semana.
 
-### 4.3 Almacenamiento
+### 4.3 Almacenamiento ([ADR-0007](decisiones/ADR-0007-almacenamiento-minimo.md))
 
 - **Zona cruda** (Parquet/compresión, append-only, con hash) → **normalizada** →
   **derivada**, según el Pilar 2.
-- **ClickHouse** para trades y velas (consultas rápidas desde gráfica y motor).
+- **DuckDB** embebido sobre Parquet para consultas analíticas; rollups de velas en
+  Parquet con caché en memoria en `query`. ClickHouse sólo si no se cumple el
+  presupuesto de latencia (5.000 velas en ≤ 50 ms p95).
 - **Postgres** para órdenes, eventos de trading, ledger, dibujos, alertas, diario,
-  niveles y eventos del motor.
+  niveles y eventos del motor, leases y cola de trabajos.
+- Grabación de libro L2 con **top-N configurable por venue** para acotar el disco.
 - Control de calidad por dataset: huecos, duplicados, prints absurdos, cambios de spec.
 
 Estimación de disco: el grabador multi-venue con L2 parcial genera decenas de GB por mes
@@ -179,11 +200,18 @@ comprimido. Planear un disco dedicado de varios TB.
 
 ## 5. La gráfica
 
-### 5.1 Renderer propio
+### 5.1 Render: Lightweight Charts v5 detrás de una escena propia ([ADR-0001](decisiones/ADR-0001-motor-grafico.md))
 
-Canvas 2D + WebGL para lo pesado. Escala log/lineal, multi-panel, multi-layout
-sincronizado, atajos tipo TradingView. Funciona igual en PC y en celular (gestos táctiles:
-pinch zoom, arrastre de líneas con long-press, sin depender de hover).
+- **`ChartScene`** (nuestro): dibujos, niveles, eventos, órdenes y posiciones en
+  coordenadas de dominio, versionados. Es lo que tiene valor y no depende del render.
+- **`render-lwc`**: adaptador a Lightweight Charts v5 (primitivas, series custom,
+  multi-panel). La interacción (selección, arrastre, atajos) es nuestra.
+- Renderer propio **sólo** si el spike de M3 no cumple los criterios de salida
+  (latencia de arrastre, fps con 200k barras, dibujos en el futuro, heatmap).
+- Escala log/lineal, multi-panel, multi-layout sincronizado, atajos tipo TradingView,
+  gestos táctiles (pinch zoom, arrastre con long-press, sin depender de hover).
+- **Los indicadores y perfiles se calculan en `bender-engine`** y se sirven por `query`:
+  la gráfica nunca calcula por su cuenta (una sola implementación para gráfica y alertas).
 
 ### 5.2 Temporalidades: de 1 segundo a 1 año
 
@@ -239,9 +267,13 @@ pinch zoom, arrastre de líneas con long-press, sin depender de hover).
 SL queda más allá), R:R, comisiones, funding estimado; posición dibujada en la gráfica y
 ajustable arrastrando. **Plantillas** de setups.
 
-Ejecución: entrada + SL + TPs como **bracket**; si el exchange no lo soporta atómico, en
-secuencia con verificación y rollback. **Nunca una posición sin SL por un error
-silencioso.** SL/TP siempre nativos en el exchange.
+Ejecución ([ADR-0002](decisiones/ADR-0002-garantias-ejecucion-futuros.md),
+[doc 06](arquitectura/06-ejecucion-futuros.md)): **no se asume atomicidad en ningún
+exchange**. Protección nativa con estrategia según capacidades verificadas (pre-armada >
+adjunta > post-fill), saga por trade con estados `EXPOSED` / `UNCERTAIN` /
+`EXTERNALLY_MODIFIED`, invariantes vigilados (INV-1…7), escalera de exposición con cierre
+de emergencia, reconciliación contra el exchange y *make-before-break* para mover stops.
+La ventana de exposición real de cada trade se mide y se muestra.
 
 **Guardarraíles** autoimpuestos dentro de `execution` (pérdida diaria/semanal máxima,
 cooldown tras pérdida, máximo de trades, riesgo máximo), desactivables con fricción y
@@ -357,6 +389,10 @@ capital, drawdown, evolución mensual.
   (Pilar 3): `get_trades`, `get_trade`, `get_stats`, `get_equity_curve`,
   `get_account_state`, `get_engine_snapshot(símbolo, T)`, `get_events`, `get_levels`,
   `get_estimate(id)` (con sus casos), `search_journal`, `get_flags`, `get_rules`.
+- **Aislamiento** ([ADR-0006](decisiones/ADR-0006-aislamiento-llm.md),
+  [doc 08](arquitectura/08-aislamiento-llm.md)): cinco capas (código, herramientas,
+  credenciales, red, presentación). En Android el LLM corre en un proceso aislado detrás de
+  un broker de herramientas, y firmar una orden exige biometría por operación.
 - El modelo del celular llama a las tools del servidor por Tailscale. Sin conexión, sólo
   puede charlar sobre un resumen local cacheado y lo dice.
 - Runtime en el celular: llama.cpp (CPU/GPU Adreno) como base; evaluar el NPU Hexagon del
@@ -379,62 +415,25 @@ capital, drawdown, evolución mensual.
 | Daemon: marketdata, execution, api | **Rust** |
 | Motor (features, niveles, eventos) | **Rust, una sola librería**; en vivo, replay, backtest y Python vía PyO3 |
 | Research, ML | Python: Polars, LightGBM, PyTorch |
-| Clientes | TypeScript + renderer propio; **Tauri 2** en PC y Android (mismo front) |
-| LLM en celular | llama.cpp (+ evaluar QNN/NPU) como plugin nativo de Tauri |
-| LLM en servidor | llama.cpp / vLLM con la RTX 5050 |
-| Datos | Parquet (crudo) · ClickHouse (series) · Postgres (estado) |
+| Clientes | TypeScript + `ChartScene` + Lightweight Charts v5; **Tauri 2** en PC y Android (mismo front; spike en M3) |
+| Transporte | Connect-RPC/gRPC sobre Tailscale, streams reanudables por cursor ([ADR-0005](decisiones/ADR-0005-topologia-distribuida.md)) |
+| LLM en celular | llama.cpp (+ evaluar QNN/NPU) en proceso aislado |
+| LLM en estación | llama.cpp con la RTX 5050 |
+| Datos | Parquet + DuckDB (crudo, rollups, research) · Postgres (estado) |
 | Red | Tailscale; opcional VPS de salida con IP fija |
 | Notificaciones | push propio de la app + Telegram |
 
 ---
 
-## 11. Roadmap (por dependencias)
+## 11. Roadmap
 
-**Fase 0 — Cimientos.** Monorepo, CI. **Esquema del modelo universal** (Pilar 1). Log de
-eventos. Keystore y estructura de procesos/usuarios separados (Pilar 3). Infra en casa:
-UPS, Tailscale, decisión IP fija vs VPS de salida.
+El roadmap vive en [ROADMAP.md](ROADMAP.md): 15 milestones (M0–M14), cada uno con issues
+en GitHub que tienen dependencias y criterios de aceptación verificables. Orden resumido:
 
-**Fase 1 — Grabador y datos.** Grabador en vivo de **todos los venues** (spot + perps,
-datos públicos), zonas cruda/normalizada, bitemporalidad, huecos. Backfill de Bitstamp,
-Coinbase, Binance, Bybit. Calidad de datos.
-
-**Fase 2 — Motor reproducible (esqueleto).** Librería del motor determinista con
-`as_of(T)`, checkpoints, manifiestos y los cuatro tests del Pilar 2, aunque todavía sólo
-calcule velas y perfiles. El pilar se valida antes de construir encima.
-
-**Fase 3 — Gráfica.** Renderer, todas las temporalidades, universo curado, dibujo
-versionado, indicadores, perfiles multi-venue, máquina del tiempo básica. PC y celular.
-
-**Fase 4 — Alertas.** Evaluación en servidor, push + Telegram.
-
-**Fase 5 — Ejecución: paper + Binance spot.** `execution` aislado, emparejamiento de
-dispositivos y firma, paper con fills realistas, order lines, escaleras, planes de
-acumulación, botón rojo.
-
-**Fase 6 — Futuros.** Ticket, brackets, preview, plantillas, guardarraíles. Binance
-perps; después BloFin, BingX, MEXC/Bybit (pasando la suite de conformidad).
-
-**Fase 7 — Diario (sin LLM).**
-
-**Fase 8 — Motor v1.** Niveles (canales a tu manera, S/R, sesiones, VWAP…), eventos
-versionados, overlays, alertas por evento, snapshot en el diario. Herramienta "marcar
-inicio de canal".
-
-**Fase 9 — Estadística auditable.** Estudio histórico point-in-time, registro de
-hipótesis, objeto `Estimate`, panel de auditoría, calibración en vivo, narrador.
-
-**Fase 10 — ML.** Modelos calibrados por mercado y tipo, detector de inicio de canal
-aprendido, confluencias aprendidas.
-
-**Fase 11 — Tradfi.** Compra de histórico intradía, continuos, sesiones, modelos
-separados.
-
-**Fase 12 — LLM.** Gateway de sólo lectura, chat en PC (35B/9B) y celular (4B local),
-LoRA, set de evaluación.
-
-**Fase 13 — Elliott y extras.** Conteos, DSL de indicadores, footprint, heatmap de libro.
-
----
+M0 Fundaciones → **M1 Núcleo temporal** → M2 Datos (el grabador arranca apenas existen el
+formato y el sobre) → M3 Gráfica (spikes en paralelo desde M0) → M4 Topología y seguridad
+→ M5 Alertas → M6 Ejecución spot + paper → M7 Futuros → M8 Motor v1 → M9 Estadística
+auditable → M10 Diario → M11 LLM → M12 ML → M13 Tradfi → M14 Elliott y extras.
 
 ## 12. Riesgos
 
@@ -447,6 +446,9 @@ LoRA, set de evaluación.
 - **Órdenes huérfanas / posición sin SL** → brackets, rollback, reconciliación.
 - **APIs que cambian o restringen** → adaptadores aislados, suite de conformidad.
 - **Disco** → el grabador multi-venue crece rápido; retención y compresión planificadas.
+- **Ventana de exposición en futuros** → invariantes, escalera de exposición, simulador
+  con fallas y tests de caos ([doc 06](arquitectura/06-ejecucion-futuros.md)).
+- **Porcentajes que son sólo geometría** → modelos base B2/B3 obligatorios (Pilar 4).
 - **Usarlo como señal** → lenguaje del narrador, ninguna conexión motor→ejecución, y el
   diario midiendo si seguir o ignorar al motor te fue mejor.
 
@@ -460,3 +462,5 @@ LoRA, set de evaluación.
 3. **Disco**: ¿cuánto almacenamiento tiene o puede tener la mini-PC?
 4. **Canales**: ¿te pasa de marcar canales inclinados además de horizontales, o casi
    siempre son laterales?
+5. **GPU**: ¿la RTX 5050 está en la PC o en la mini-PC? Define en qué nodo corren
+   `worker` y `llm-gateway` (sólo cambia el perfil de despliegue).
