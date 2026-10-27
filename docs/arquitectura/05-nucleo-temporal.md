@@ -133,6 +133,22 @@ pasado (`PastView`). Las etiquetas las calcula un `Labeler` separado que recibe
 explícitamente una `FutureWindow`. El sistema de tipos impide que una feature reciba una
 `FutureWindow`.
 
+Implementación (`bender-runner`):
+
+- `Runner` = `KernelState` + un `Consumer`. Cada evento lo aplica primero el núcleo y
+  después se pasa al consumidor con una `PastView` (estado hasta el reloj actual y salidas
+  del núcleo para ese evento).
+- Fuentes: `StoreSource` (lee la zona normalizada de `bender-store` y fusiona en orden
+  K), `LiveSource` (canal en vivo, grabando a la vez en el store) y `VecSource`.
+- `replay` (`Replay`) avanza N eventos, va a un instante T y reproduce con un `Pacer` que
+  puede pausar. El ritmo real (×1, ×N) lo implementa quien lo usa, porque el Runner no lee
+  el reloj (Pilar 2).
+- `dataset`: los `DatasetRow` del consumidor y la etiqueta de un `Labeler`, que recibe
+  una `FutureWindow` con constructor privado. Un consumidor no puede obtenerla: lo
+  verifica un test de compilación (trybuild). Salida en Parquet.
+- Cada corrida produce su `RunManifest`. El hash de salida combina el del núcleo y el del
+  consumidor; el commit sale de `BENDER_GIT_COMMIT` al compilar.
+
 ## 10. Checkpoints y manifiestos
 
 - Checkpoint diario (00:00 UTC) del estado completo, serializado de forma canónica, con

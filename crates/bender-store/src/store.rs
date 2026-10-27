@@ -33,6 +33,8 @@ impl Default for WriterOptions {
 pub struct Store {
     root: PathBuf,
     manifest: Manifest,
+    /// Segmentos abiertos, uno por zona y fuente.
+    open: BTreeMap<(Zone, String), OpenState>,
 }
 
 /// Punto de un cierre en el que se simula un corte (sólo tests).
@@ -63,7 +65,11 @@ impl Store {
         let root = root.into();
         std::fs::create_dir_all(&root)?;
         let manifest = Manifest::load(&root)?;
-        let mut store = Self { root, manifest };
+        let mut store = Self {
+            root,
+            manifest,
+            open: BTreeMap::new(),
+        };
         store.recover()?;
         Ok(store)
     }
@@ -231,16 +237,161 @@ impl Store {
         normalizer_version: &str,
         options: WriterOptions,
     ) -> Writer<'_> {
-        let last = self.last_ingest_seq(zone, source);
         Writer {
             store: self,
             zone,
             source: source.to_string(),
             normalizer_version: normalizer_version.to_string(),
             options,
-            last,
-            open: None,
         }
+    }
+
+    /// Agrega un `Envelope` a la zona normalizada de `source` (sin tomar un [`Writer`]).
+    /// Varias fuentes pueden tener segmentos abiertos a la vez.
+    pub fn append_envelope(
+        &mut self,
+        source: &str,
+        normalizer_version: &str,
+        options: &WriterOptions,
+        envelope: &proto::Envelope,
+    ) -> Result<(), StoreError> {
+        self.append_row(
+            Zone::Normalized,
+            source,
+            normalizer_version,
+            options,
+            Row {
+                ingest_seq: envelope.ingest_seq,
+                ts: envelope.ts_available,
+                data: envelope.encode_to_vec(),
+            },
+        )
+    }
+
+    /// Agrega un mensaje crudo a la zona cruda de `source`.
+    pub fn append_raw(
+        &mut self,
+        source: &str,
+        options: &WriterOptions,
+        record: &RawRecord,
+    ) -> Result<(), StoreError> {
+        self.append_row(
+            Zone::Raw,
+            source,
+            "",
+            options,
+            Row {
+                ingest_seq: record.ingest_seq,
+                ts: record.ts_received,
+                data: record.payload.clone(),
+            },
+        )
+    }
+
+    fn append_row(
+        &mut self,
+        zone: Zone,
+        source: &str,
+        normalizer_version: &str,
+        options: &WriterOptions,
+        row: Row,
+    ) -> Result<(), StoreError> {
+        let key = (zone, source.to_string());
+        if !self.open.contains_key(&key) {
+            let last = self.last_ingest_seq(zone, source);
+            self.open.insert(
+                key.clone(),
+                OpenState {
+                    last,
+                    segment: None,
+                },
+            );
+        }
+        let last = self.open[&key].last;
+        if let Some(last) = last
+            && row.ingest_seq <= last
+        {
+            return Err(StoreError::OutOfOrder {
+                source: source.to_string(),
+                last,
+                got: row.ingest_seq,
+            });
+        }
+        let day = day_number(row.ts);
+        let rolls = self.open[&key].segment.as_ref().is_some_and(|o| {
+            o.header.day != day || o.header.normalizer_version != normalizer_version
+        });
+        if rolls {
+            self.close_source_with(zone, source, CrashPoint::None)?;
+        }
+        if self.open[&key].segment.is_none() {
+            let dir = self.source_path(zone, source);
+            std::fs::create_dir_all(&dir)?;
+            let header = WalHeader {
+                zone,
+                source: source.to_string(),
+                normalizer_version: normalizer_version.to_string(),
+                day,
+            };
+            let wal_path = dir.join(WAL_NAME);
+            let wal = Wal::create(&wal_path, &header)?;
+            self.open.get_mut(&key).expect("estado").segment = Some(OpenSegment {
+                header,
+                wal,
+                wal_path,
+                rows: Vec::new(),
+            });
+        }
+        let state = self.open.get_mut(&key).expect("estado");
+        let open = state.segment.as_mut().expect("segmento abierto");
+        open.wal.append(&row)?;
+        state.last = Some(row.ingest_seq);
+        open.rows.push(row);
+        if open.rows.len() >= options.max_rows {
+            self.close_source_with(zone, source, CrashPoint::None)?;
+        }
+        Ok(())
+    }
+
+    /// Cierra el segmento abierto de una fuente, si hay.
+    pub fn close_source(
+        &mut self,
+        zone: Zone,
+        source: &str,
+    ) -> Result<Option<SegmentInfo>, StoreError> {
+        self.close_source_with(zone, source, CrashPoint::None)
+    }
+
+    /// Cierra todos los segmentos abiertos (antes de apagar). Si el proceso muere sin
+    /// llamarlo, los segmentos abiertos se recuperan al reabrir el store.
+    pub fn close_all(&mut self) -> Result<Vec<SegmentInfo>, StoreError> {
+        let keys: Vec<(Zone, String)> = self.open.keys().cloned().collect();
+        let mut out = Vec::new();
+        for (zone, source) in keys {
+            out.extend(self.close_source(zone, &source)?);
+        }
+        Ok(out)
+    }
+
+    pub(crate) fn close_source_with(
+        &mut self,
+        zone: Zone,
+        source: &str,
+        crash: CrashPoint,
+    ) -> Result<Option<SegmentInfo>, StoreError> {
+        let Some(open) = self
+            .open
+            .get_mut(&(zone, source.to_string()))
+            .and_then(|s| s.segment.take())
+        else {
+            return Ok(None);
+        };
+        drop(open.wal);
+        let info = self.close_segment(&open.header, &open.rows, crash)?;
+        if crash == CrashPoint::None {
+            std::fs::remove_file(&open.wal_path)?;
+        }
+        Ok(info)
     }
 
     fn read_rows(
@@ -397,18 +548,21 @@ struct OpenSegment {
     rows: Vec<Row>,
 }
 
-/// Escritor append-only de una fuente. Cada `append` queda en el log del segmento
-/// abierto; [`Writer::close`] (o el cambio de día, o `max_rows`) lo cierra como segmento.
-/// Si el escritor se descarta sin cerrar, el segmento abierto se recupera la próxima vez
-/// que se abra el store.
+struct OpenState {
+    last: Option<u64>,
+    segment: Option<OpenSegment>,
+}
+
+/// Escritor append-only de una fuente: atajo sobre [`Store::append_envelope`] y
+/// [`Store::append_raw`]. Cada `append` queda en el log del segmento abierto;
+/// [`Writer::close`] (o el cambio de día, o `max_rows`) lo cierra como segmento. Si el
+/// proceso muere sin cerrar, el segmento abierto se recupera al reabrir el store.
 pub struct Writer<'a> {
     store: &'a mut Store,
     zone: Zone,
     source: String,
     normalizer_version: String,
     options: WriterOptions,
-    last: Option<u64>,
-    open: Option<OpenSegment>,
 }
 
 impl Writer<'_> {
@@ -416,83 +570,31 @@ impl Writer<'_> {
     /// último escrito de la fuente.
     pub fn append_envelope(&mut self, envelope: &proto::Envelope) -> Result<(), StoreError> {
         debug_assert_eq!(self.zone, Zone::Normalized);
-        self.append_row(Row {
-            ingest_seq: envelope.ingest_seq,
-            ts: envelope.ts_available,
-            data: envelope.encode_to_vec(),
-        })
+        self.store.append_envelope(
+            &self.source,
+            &self.normalizer_version,
+            &self.options,
+            envelope,
+        )
     }
 
     /// Agrega un mensaje crudo.
     pub fn append_raw(&mut self, record: &RawRecord) -> Result<(), StoreError> {
         debug_assert_eq!(self.zone, Zone::Raw);
-        self.append_row(Row {
-            ingest_seq: record.ingest_seq,
-            ts: record.ts_received,
-            data: record.payload.clone(),
-        })
-    }
-
-    fn append_row(&mut self, row: Row) -> Result<(), StoreError> {
-        if let Some(last) = self.last
-            && row.ingest_seq <= last
-        {
-            return Err(StoreError::OutOfOrder {
-                source: self.source.clone(),
-                last,
-                got: row.ingest_seq,
-            });
-        }
-        let day = day_number(row.ts);
-        if self.open.as_ref().is_some_and(|o| o.header.day != day) {
-            self.close()?;
-        }
-        if self.open.is_none() {
-            let dir = self.store.source_path(self.zone, &self.source);
-            std::fs::create_dir_all(&dir)?;
-            let header = WalHeader {
-                zone: self.zone,
-                source: self.source.clone(),
-                normalizer_version: self.normalizer_version.clone(),
-                day,
-            };
-            let wal_path = dir.join(WAL_NAME);
-            let wal = Wal::create(&wal_path, &header)?;
-            self.open = Some(OpenSegment {
-                header,
-                wal,
-                wal_path,
-                rows: Vec::new(),
-            });
-        }
-        let open = self.open.as_mut().expect("segmento abierto");
-        open.wal.append(&row)?;
-        self.last = Some(row.ingest_seq);
-        open.rows.push(row);
-        if open.rows.len() >= self.options.max_rows {
-            self.close()?;
-        }
-        Ok(())
+        self.store.append_raw(&self.source, &self.options, record)
     }
 
     /// Cierra el segmento abierto, si hay. Devuelve su información.
     pub fn close(&mut self) -> Result<Option<SegmentInfo>, StoreError> {
-        self.close_with(CrashPoint::None)
+        self.store.close_source(self.zone, &self.source)
     }
 
+    #[cfg(test)]
     pub(crate) fn close_with(
         &mut self,
         crash: CrashPoint,
     ) -> Result<Option<SegmentInfo>, StoreError> {
-        let Some(open) = self.open.take() else {
-            return Ok(None);
-        };
-        drop(open.wal);
-        let info = self.store.close_segment(&open.header, &open.rows, crash)?;
-        if crash == CrashPoint::None {
-            std::fs::remove_file(&open.wal_path)?;
-        }
-        Ok(info)
+        self.store.close_source_with(self.zone, &self.source, crash)
     }
 }
 

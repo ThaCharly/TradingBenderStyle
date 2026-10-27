@@ -5,7 +5,19 @@ edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 publish.workspace = true
-description = "Runner con modos live/replay/backtest/dataset (doc 05 §9). Placeholder: existe para que los lints del Pilar 2 rijan desde el principio."
+description = "Runner único con modos live, replay, backtest y dataset (doc 05 §9, ADR-0004)."
 
 [lints]
 workspace = true
+
+[dependencies]
+arrow-array = "60"
+arrow-schema = "60"
+bender-kernel = { path = "../bender-kernel" }
+bender-store = { path = "../bender-store" }
+bender-types = { path = "../bender-types" }
+blake3 = "1"
+parquet = { version = "60", default-features = false, features = ["arrow", "zstd"] }
+
+[dev-dependencies]
+trybuild = "1"
