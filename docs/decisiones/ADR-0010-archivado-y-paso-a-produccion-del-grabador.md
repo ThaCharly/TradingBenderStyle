@@ -46,6 +46,9 @@ histórica pública que lo reproduzca. Clasificación inicial (configurable, ver
    (verificando hashes), así la re-normalización (#38) puede usarlos aunque tengan más de
    90 días.
 
+**El archivado no es un respaldo**: hay una sola copia. Ver
+[archivado vs respaldo](../operacion/archivado-vs-respaldo.md).
+
 ### Alternativas descartadas
 - **Archivar todo**: el L2 crudo llena el disco local en meses.
 - **Implementar destino externo ya**: no hace falta hasta que la alarma de disco lo pida.

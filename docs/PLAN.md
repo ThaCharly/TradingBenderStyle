@@ -18,7 +18,7 @@ Mapa de documentos:
   [07 topología](arquitectura/07-topologia-distribuida.md) ·
   [08 aislamiento del LLM](arquitectura/08-aislamiento-llm.md)
 - Decisiones: [ADRs](decisiones/README.md)
-- Trabajo: [PROTOTIPO inicial](PROTOTIPO.md) · [ROADMAP](ROADMAP.md) (milestones e issues) · [guía para agentes](AGENTES.md) · [estrategia de ramas](RAMAS.md)
+- Trabajo: [PROTOTIPO inicial](PROTOTIPO.md) · [ROADMAP](ROADMAP.md) (milestones e issues) · [guía para agentes](AGENTES.md) · [estrategia de ramas](RAMAS.md) · [archivado vs respaldo](operacion/archivado-vs-respaldo.md)
 
 ---
 
