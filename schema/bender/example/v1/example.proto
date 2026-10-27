@@ -1,0 +1,38 @@
+syntax = "proto3";
+
+// Servicio de ejemplo de la capa de transporte (#21). Sirve de referencia para los
+// servicios reales y para probar los dos transportes con la misma suite.
+package bender.example.v1;
+
+service ExampleService {
+  // Devuelve el texto recibido.
+  rpc Echo(EchoRequest) returns (EchoResponse);
+  // Emite eventos numerados a partir del cursor. Para reanudar después de un corte, el
+  // cliente vuelve a llamar con el último `ingest_seq` recibido.
+  rpc StreamCounter(StreamCounterRequest) returns (stream StreamCounterResponse);
+}
+
+message EchoRequest {
+  // [requerido]
+  string text = 1;
+}
+
+message EchoResponse {
+  // [requerido]
+  string text = 1;
+}
+
+message StreamCounterRequest {
+  // Último `ingest_seq` recibido. Ausente = desde el principio.
+  optional uint64 after_ingest_seq = 1;
+  // Último `ingest_seq` a emitir (inclusive); después el stream termina. [requerido]
+  uint64 until_ingest_seq = 2;
+}
+
+// Un evento del stream.
+message StreamCounterResponse {
+  // Cursor del stream: 1, 2, 3… sin huecos. [requerido]
+  uint64 ingest_seq = 1;
+  // Valor derivado del cursor (ingest_seq²), para verificar el contenido. [requerido]
+  uint64 value = 2;
+}

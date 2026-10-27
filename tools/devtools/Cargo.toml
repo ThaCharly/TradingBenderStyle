@@ -12,4 +12,6 @@ workspace = true
 
 [dependencies]
 prost-build = "0.14"
+prost-types = "0.14"
 protox = "0.10"
+tonic-prost-build = "0.14"

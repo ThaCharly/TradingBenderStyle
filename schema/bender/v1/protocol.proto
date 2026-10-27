@@ -1,0 +1,24 @@
+syntax = "proto3";
+
+package bender.v1;
+
+// Versionado de protocolo entre componentes (doc 07 §2.6). Cada servicio publica su
+// versión; el cliente manda la suya en el metadato `bender-protocol-version`
+// ("MAYOR.MENOR") de cada llamada. Son compatibles si coincide la mayor y las menores
+// difieren a lo sumo en 1.
+message ProtocolVersion {
+  // [requerido]
+  uint32 major = 1;
+  // [requerido]
+  uint32 minor = 2;
+}
+
+// Detalle del error `FAILED_PRECONDITION` que devuelve un servicio cuando la versión del
+// cliente es incompatible. Viaja en los detalles del status (`grpc-status-details-bin`).
+message VersionMismatch {
+  // Nombre completo del servicio, p. ej. "bender.example.v1.ExampleService". [requerido]
+  string service = 1;
+  ProtocolVersion server = 2;
+  // Ausente si el cliente no mandó versión.
+  ProtocolVersion client = 3;
+}

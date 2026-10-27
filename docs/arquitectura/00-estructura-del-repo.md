@@ -10,6 +10,7 @@ crates/                         workspace de Rust
   bender-kernel                 núcleo temporal (doc 05): sobre, orden, reloj, velas, as_of
   bender-store                  segmentos Parquet, hashes, manifiestos, checkpoints
   bender-runner                 Runner con modos live/replay/backtest/dataset
+  bender-transport              transporte entre componentes: en proceso y en red, versionado, streams reanudables (ADR-0005)
   bender-venue-api              trait Venue, matriz de capacidades, suite de conformidad
   bender-venue-sim              simulador determinista de exchange con inyección de fallas
   bender-venue-paper            venue paper (fills sobre datos reales)
@@ -32,6 +33,7 @@ crates/                         workspace de Rust
   bender-lab                    CLI de research: datasets, reportes HTML/JSON
 apps/client/                    front TypeScript (Vite, pnpm)
   packages/types                tipos TS generados del esquema (`@bender/types`) + Decimal
+  packages/transport            cliente Connect-Web (gRPC-Web) de bender-transport (`@bender/transport`)
   packages/chart-scene          modelo de escena (ADR-0001)
   packages/render-lwc           adaptador Lightweight Charts
   packages/ui                   componentes (ticket, diario, auditoría…)
