@@ -1,69 +1,67 @@
 # Traspaso: de la planificación a la ejecución
 
-La planificación está cerrada. Este documento es el punto de entrada para la **sesión de
-ejecución** (Claude) y para el **agente local**. Todo lo necesario está en el repo; nada
-depende de conversaciones anteriores.
+La planificación está cerrada. **Toda la ejecución la hace una sesión de Claude**, distinta
+de la de planificación. Todo lo necesario está en el repo; nada depende de conversaciones
+anteriores.
 
 ## 1. Estado al cierre de la planificación
 
 | Qué | Estado |
 |---|---|
 | Plan, arquitectura y decisiones (ADR-0001…0013) | cerrados; ver [PLAN](PLAN.md) y [ADRs](decisiones/README.md) |
-| Issues | 15 milestones (M0–M15, épicos #1, #3–#16, #143) + seguimiento del prototipo #141 |
-| #2 entorno base y CI | hecho en el **PR #142**, CI verde, pendiente de merge |
+| Issues | 16 milestones (M0–M15: épicos #1, #3–#16, #143) + seguimiento del prototipo #141 |
+| #2 entorno base y CI | hecho y mergeado en `main` |
+| `main` | rama por defecto |
 | Código funcional | ninguno todavía |
 
-## 2. Lo que tiene que hacer el usuario antes de arrancar
+## 2. Roles
 
-1. Mergear el **PR #142** con **squash**. Cierra #2 y trae toda la documentación a `main`.
-2. Configurar `main` como rama por defecto y su protección (checks `docs`, `rust`, `ts`,
-   `buf`): ver [RAMAS.md](RAMAS.md).
-3. Opcional: crear Milestones reales de GitHub y pedirle a Claude que asigne cada issue
-   según su etiqueta `M*`.
+- **Sesión de planificación**: decisiones de arquitectura, ADRs, issues y cambios de
+  alcance. Si en la ejecución aparece algo que cambia el plan, se registra como ADR nueva
+  y se avisa al usuario.
+- **Sesión de ejecución**: implementa los issues de a uno, con PR a `main`.
+- **Usuario**: decide lo que condiciona el proyecto y corre en su PC lo que necesita
+  hardware real.
 
-## 3. Orden de trabajo
+## 3. Orden de trabajo para P0 ([PROTOTIPO.md](PROTOTIPO.md), seguimiento #141)
 
-El objetivo inmediato es el **prototipo P0** ([PROTOTIPO.md](PROTOTIPO.md), seguimiento #141).
-Después: P1 (grabador en producción) y la base del MCP (#143). El resto sigue el
+Por dependencias, siempre tomando el primero desbloqueado:
+
+1. **Cimientos**: #17 → #18 → #19, y #20 en paralelo; después #21.
+2. **Núcleo temporal**: #22, #23 → #24 → #25 → #26, #27 → #28 → #29 → #30.
+3. **Grabador**: #32, después #156.
+4. **Gráfica**: #44 (spike) en cualquier momento después de #2, sobre todo mientras otra
+   cosa esté bloqueada; después #46 → #47 → #48 → #49 → #54.
+5. **Integración**: #155.
+
+Después de P0: P1 (grabador en producción) y la base del MCP (#143), según el
 [ROADMAP](ROADMAP.md).
 
-Reparto sugerido para P0:
+## 4. Cómo se trabaja cada issue
 
-| Quién | Issues | Por qué |
-|---|---|---|
-| Agente local (piloto) | #20 → #17 → #18 → #23 | chicos y bien especificados; miden si la documentación alcanza ([PILOTO-AGENTE-LOCAL.md](PILOTO-AGENTE-LOCAL.md)) |
-| Claude (sesión de ejecución) | #19, #21, #22, #24–#30 | núcleo temporal: es el corazón y lo más delicado |
-| Claude, en paralelo | #44 (spike de gráfica) | arranca apenas está mergeado #2 |
-| Quien quede libre, cuando se desbloqueen | #32, #156, #46, #47, #48, #49, #54, #155 | grabador, validación, gráfica, integración |
+Reglas completas en [AGENTES.md](AGENTES.md) y [RAMAS.md](RAMAS.md). En resumen:
+- Verificar que los "Bloqueado por" estén cerrados.
+- Rama desde `main` actualizado; un issue por PR. Si la plataforma asigna un nombre de rama
+  propio, se usa ese.
+- `make check` en verde; PR con `Closes #<n>`, criterios tildados con su verificación y
+  "Huecos de documentación".
+- **Merge**: la sesión de ejecución mergea con squash cuando la CI está en verde y todos los
+  criterios están verificados. Si algo no se pudo cumplir, no mergea y lo explica.
+- Marcar el issue en #141.
 
-Si el piloto con el agente local no rinde, Claude toma esos issues y el resultado se anota
-en el registro del piloto.
+## 5. Lo que necesita la PC del usuario
 
-## 4. Cómo arrancar la sesión de ejecución
+La sesión de ejecución corre en un contenedor que se apaga, sin acceso a tu hardware. Para
+estos casos deja todo listo, indica exactamente qué correr y espera los resultados:
+- reporte de 24 h del grabador (#32) y validación de velas (#156);
+- demo `make dev` (#155);
+- mediciones del spike de gráfica en la PC y en el Samsung S25 (#44).
 
-Prompt sugerido para la nueva sesión de Claude:
+## 6. Decisiones
 
-> Sos el ejecutor de TradingBenderStyle. Leé `docs/TRASPASO.md`, `docs/AGENTES.md` y
-> `docs/RAMAS.md`. Trabajá los issues de P0 (#141) en el orden de dependencias que asigna
-> `docs/TRASPASO.md` §3, de a uno: rama `issue-<n>-<slug>` desde `main`, `make check`,
-> PR con `Closes #<n>`. No adelantes funcionalidades fuera del issue. Las decisiones que
-> condicionen el proyecto me las traés; las menores las tomás vos y las documentás.
-
-Para el agente local: el número de issue y la instrucción de
-[PILOTO-AGENTE-LOCAL.md](PILOTO-AGENTE-LOCAL.md).
-
-## 5. Reglas que siguen vigentes
-
-- Un issue por PR, squash a `main`, `make check` verde.
-- No adelantar funcionalidades de fases posteriores.
-- Si algo contradice la documentación: se para y se pregunta (o se documenta el hueco).
-- Decisiones que condicionan el proyecto → al usuario. Decisiones menores → criterio
-  técnico, documentado en el PR o en una ADR.
-- Sin Python; nada con indentación significativa ([ADR-0012](decisiones/ADR-0012-sin-python.md)).
-
-## 6. Decisiones diferidas
-
-Están listadas con su disparador en [PLAN §13](PLAN.md#13-decisiones-cuáles-ahora-y-cuáles-después).
-Las próximas que van a aparecer en P0:
-- resultado del spike de gráfica (#44) → confirma o reemplaza ADR-0001;
-- consumo real de disco (reporte de #32) → confirma o ajusta ADR-0009.
+- Menores: las toma la sesión de ejecución y las documenta en el PR.
+- Las que condicionan el proyecto van al usuario con una recomendación. Las próximas:
+  resultado del spike #44 (confirma o reemplaza ADR-0001) y consumo real de disco (ajusta
+  ADR-0009).
+- Lista completa de decisiones diferidas y sus disparadores:
+  [PLAN §13](PLAN.md#13-decisiones-cuáles-ahora-y-cuáles-después).

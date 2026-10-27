@@ -19,7 +19,7 @@ Mapa de documentos:
   [08 aislamiento del LLM](arquitectura/08-aislamiento-llm.md) ·
   [09 MCP de análisis](arquitectura/09-mcp-de-analisis.md)
 - Decisiones: [ADRs](decisiones/README.md)
-- Trabajo: [PROTOTIPO inicial](PROTOTIPO.md) · [ROADMAP](ROADMAP.md) (milestones e issues) · [guía para agentes](AGENTES.md) · [piloto con agente local](PILOTO-AGENTE-LOCAL.md) · [estrategia de ramas](RAMAS.md) · [archivado vs respaldo](operacion/archivado-vs-respaldo.md)
+- Trabajo: [PROTOTIPO inicial](PROTOTIPO.md) · [ROADMAP](ROADMAP.md) (milestones e issues) · [guía para agentes](AGENTES.md) · [estrategia de ramas](RAMAS.md) · [archivado vs respaldo](operacion/archivado-vs-respaldo.md)
 
 ---
 
