@@ -49,15 +49,12 @@ vive en un solo lugar.
 - **Nada con indentación significativa** (Python, YAML como lenguaje de lógica, etc.).
   Rust y TypeScript usan llaves; la configuración en TOML/YAML se mantiene declarativa y
   plana.
-- **Preferencia por lenguajes poco tipados para lo que escriba el usuario.** Se separan dos
-  capas:
-  - **Núcleo** (motor, ejecución, datos, estadística): tipado fuerte, porque los tipos son
-    los que hacen cumplir los pilares (`Decimal` en vez de float, `PastView`/`FutureWindow`
-    contra el sesgo de futuro, comandos firmados). Lo escriben agentes; el usuario no
-    necesita tocarlo.
-  - **Scripts del usuario** (indicadores propios, alertas personalizadas, consultas):
-    lenguaje dinámico y con llaves, embebido y en sandbox (candidato: Rhai; alternativa:
-    Lua). Se decide en el DSL de indicadores (#136).
+- **El tipado no es una restricción del usuario.** Se mantiene tipado fuerte en todo el
+  proyecto, porque los tipos son los que hacen cumplir los pilares (`Decimal` en vez de
+  float, `PastView`/`FutureWindow` contra el sesgo de futuro, comandos firmados).
+- **Scripts del usuario** (indicadores propios, alertas personalizadas): lenguaje embebido
+  y en sandbox, **con llaves**. Candidatos: Rhai y Lua; se elige en el DSL de indicadores
+  (#136) por sus méritos, no por su tipado.
 
 ## Alternativas descartadas
 
