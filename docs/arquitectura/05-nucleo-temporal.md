@@ -87,8 +87,17 @@ Los δ son parte de la configuración versionada y se registran en el manifiesto
 - Campos: OHLC, volumen base, volumen quote, volumen comprador/vendedor (agresor),
   cantidad de trades, primer y último `ts_event`, revisión, fuentes incluidas.
 - **Compuestas multi-venue**: cierran cuando todas las fuentes incluidas superaron
-  `t+d` o tras una espera máxima `M` (default 5 s); las fuentes que faltaron quedan
-  registradas como incompletas en la vela.
+  `t+d` (`max ts_event − L ≥ t+d` en cada una) o cuando el reloj llega a `t + d + L + M`
+  (espera máxima `M`, default 5 s); las fuentes que no habían superado `t+d` quedan
+  registradas como incompletas en la vela. Una fuente sin trades en ese lapso también
+  figura como incompleta: la vela no distingue una fuente callada de una caída.
+  - Definición versionada (id + versión, registrados en cada vela): conjunto de fuentes
+    de trades y regla de precio. Con **VWAP** (default), OHLC sale de los trades de
+    todas las fuentes y la vela informa su VWAP (12 decimales, half-even). Con **venue
+    de referencia**, OHLC sale sólo de esa fuente. El volumen es siempre de todas y se
+    conserva también por fuente.
+  - Volúmenes en unidades del activo base. La conversión desde contratos la hace el
+    adaptador con la spec vigente en el `ts_event` (`SpecHistory::to_base`).
 
 ## 7. Acciones del usuario
 

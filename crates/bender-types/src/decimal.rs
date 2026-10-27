@@ -30,6 +30,7 @@ pub enum DecimalError {
     Parse(String),
     /// El resultado no cabe en una mantisa de 128 bits.
     Overflow,
+    DivisionByZero,
 }
 
 impl fmt::Display for DecimalError {
@@ -38,6 +39,7 @@ impl fmt::Display for DecimalError {
             Self::ScaleTooLarge(s) => write!(f, "escala {s} mayor que {MAX_SCALE}"),
             Self::Parse(s) => write!(f, "decimal inválido: {s:?}"),
             Self::Overflow => write!(f, "desborde de la mantisa de 128 bits"),
+            Self::DivisionByZero => write!(f, "división por cero"),
         }
     }
 }
@@ -141,6 +143,51 @@ impl Decimal {
             .checked_mul(other.mantissa)
             .ok_or(DecimalError::Overflow)?;
         Self::new(mantissa, self.scale + other.scale)
+    }
+
+    /// Cociente `self / other` con escala `scale`, redondeado al par más cercano
+    /// (*half-even*, sin sesgo). Falla si `other` es cero o si no cabe.
+    pub fn checked_div_round(self, other: Self, scale: u32) -> Result<Self, DecimalError> {
+        if scale > MAX_SCALE {
+            return Err(DecimalError::ScaleTooLarge(scale));
+        }
+        if other.mantissa == 0 {
+            return Err(DecimalError::DivisionByZero);
+        }
+        // resultado = (a / 10^sa) / (b / 10^sb) · 10^s = a · 10^(s + sb − sa) / b
+        let exp = i64::from(scale) + i64::from(other.scale) - i64::from(self.scale);
+        let (num, den) = if exp >= 0 {
+            let f = pow10(exp as u32).ok_or(DecimalError::Overflow)?;
+            (
+                self.mantissa.checked_mul(f).ok_or(DecimalError::Overflow)?,
+                other.mantissa,
+            )
+        } else {
+            let f = pow10((-exp) as u32).ok_or(DecimalError::Overflow)?;
+            (
+                self.mantissa,
+                other
+                    .mantissa
+                    .checked_mul(f)
+                    .ok_or(DecimalError::Overflow)?,
+            )
+        };
+        let mut q = num / den;
+        let r = num % den;
+        if r != 0 {
+            // |2r| vs |den|, sin desbordar.
+            let (r_abs, d_abs) = (r.unsigned_abs(), den.unsigned_abs());
+            let twice = r_abs.checked_mul(2);
+            let round_away = match twice {
+                None => true,
+                Some(t) => t > d_abs || (t == d_abs && q % 2 != 0),
+            };
+            if round_away {
+                let negative = (num < 0) != (den < 0);
+                q = if negative { q - 1 } else { q + 1 };
+            }
+        }
+        Self::new(q, scale)
     }
 
     pub fn checked_neg(self) -> Result<Self, DecimalError> {
@@ -333,6 +380,23 @@ mod tests {
             Err(DecimalError::Overflow)
         );
         assert_eq!(Decimal::new(1, 39), Err(DecimalError::ScaleTooLarge(39)));
+    }
+
+    #[test]
+    fn division_rounds_half_even() {
+        let div = |a: &str, b: &str, s| d(a).checked_div_round(d(b), s).unwrap().to_string();
+        assert_eq!(div("1", "3", 4), "0.3333");
+        assert_eq!(div("2", "3", 4), "0.6667");
+        assert_eq!(div("-2", "3", 4), "-0.6667");
+        assert_eq!(div("0.25", "1", 1), "0.2"); // mitad → par
+        assert_eq!(div("0.35", "1", 1), "0.4");
+        assert_eq!(div("-0.25", "1", 1), "-0.2");
+        assert_eq!(div("100", "65000.5", 18), "0.001538449704233044");
+        assert_eq!(div("10", "0.04", 0), "250");
+        assert_eq!(
+            d("1").checked_div_round(Decimal::ZERO, 2),
+            Err(DecimalError::DivisionByZero)
+        );
     }
 
     #[test]
