@@ -1,0 +1,106 @@
+syntax = "proto3";
+
+package bender.v1;
+
+import "bender/v1/decimal.proto";
+import "bender/v1/identity.proto";
+
+// Especificación de instrumento versionada en el tiempo (doc 01 §3). Se consulta siempre
+// como `spec(instrument, as_of = T)`: vale para `valid_from ≤ T < valid_to`.
+message InstrumentSpec {
+  InstrumentId instrument = 1;
+  CanonicalPair canonical_pair = 2;
+  Asset base_asset = 3;
+  // Moneda de cotización real (p. ej. USDT), aunque el par canónico sea BTC/USD.
+  Asset quote_asset = 4;
+
+  // Inicio de vigencia, ns UTC (inclusive). [requerido]
+  int64 valid_from = 5;
+  // Fin de vigencia, ns UTC (exclusivo). Ausente = vigente.
+  optional int64 valid_to = 6;
+
+  Decimal tick_size = 7;
+  // Paso de cantidad, en unidades del activo base.
+  Decimal lot_step = 8;
+  // Cantidad mínima, en unidades del activo base.
+  Decimal min_qty = 9;
+  // Nocional mínimo, en la moneda de cotización.
+  Decimal min_notional = 10;
+
+  InstrumentState state = 11;
+
+  // Presente sólo en derivados (perps y futuros con vencimiento).
+  DerivativeSpec derivative = 12;
+}
+
+// Estado operativo. Los deslistados no se borran (evita sesgo de supervivencia).
+enum InstrumentState {
+  INSTRUMENT_STATE_UNSPECIFIED = 0;
+  INSTRUMENT_STATE_TRADING = 1;
+  INSTRUMENT_STATE_PAUSED = 2;
+  INSTRUMENT_STATE_DELISTED = 3;
+}
+
+// Campos propios de los derivados.
+message DerivativeSpec {
+  ContractKind contract_kind = 1;
+  // Moneda en la que se liquida el contrato.
+  Asset settle_asset = 2;
+  // Tamaño de un contrato expresado en `contract_unit`. Internamente toda cantidad es en
+  // unidades del activo base; la conversión a contratos vive sólo en el adaptador.
+  Decimal contract_size = 3;
+  ContractUnit contract_unit = 4;
+  // Ausente = el venue no informó los escalones.
+  LeverageBrackets leverage_brackets = 5;
+  // Ausente = el venue no informó las fuentes de trigger.
+  TriggerSources trigger_sources = 6;
+  // Vencimiento, ns UTC. Sólo futuros con fecha.
+  optional int64 expiry_time = 7;
+}
+
+// Lineal (margen y PnL en la moneda de cotización) o inverso (en el activo base).
+enum ContractKind {
+  CONTRACT_KIND_UNSPECIFIED = 0;
+  CONTRACT_KIND_LINEAR = 1;
+  CONTRACT_KIND_INVERSE = 2;
+}
+
+// Unidad en la que el venue cuenta los contratos.
+enum ContractUnit {
+  CONTRACT_UNIT_UNSPECIFIED = 0;
+  // Contratos de N unidades del activo base (p. ej. 0.001 BTC, o 1 BTC).
+  CONTRACT_UNIT_BASE = 1;
+  // Contratos de N unidades de la moneda de cotización (p. ej. 100 USD en inversos).
+  CONTRACT_UNIT_QUOTE = 2;
+}
+
+// Escalones de apalancamiento y margen de mantenimiento.
+message LeverageBrackets {
+  repeated LeverageBracket brackets = 1;
+}
+
+// Un escalón, por nocional de la posición.
+message LeverageBracket {
+  // Nocional desde el que aplica (inclusive).
+  Decimal notional_floor = 1;
+  // Nocional hasta el que aplica (exclusivo). Ausente = sin tope.
+  Decimal notional_cap = 2;
+  Decimal max_leverage = 3;
+  // Tasa de margen de mantenimiento (p. ej. 0.004 = 0,4 %).
+  Decimal maintenance_margin_rate = 4;
+  // Monto fijo que el venue resta al margen de mantenimiento, si lo usa.
+  Decimal maintenance_amount = 5;
+}
+
+// Precio que dispara las órdenes condicionales.
+enum TriggerSource {
+  TRIGGER_SOURCE_UNSPECIFIED = 0;
+  TRIGGER_SOURCE_LAST = 1;
+  TRIGGER_SOURCE_MARK = 2;
+  TRIGGER_SOURCE_INDEX = 3;
+}
+
+// Fuentes de trigger que el venue admite para el instrumento.
+message TriggerSources {
+  repeated TriggerSource sources = 1;
+}

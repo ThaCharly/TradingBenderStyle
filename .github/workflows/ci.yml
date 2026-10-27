@@ -54,5 +54,10 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
+      - name: Toolchain de rust-toolchain.toml
+        run: rustup show active-toolchain || rustup toolchain install
+      - uses: Swatinem/rust-cache@v2
       - run: pnpm install --frozen-lockfile
+      - name: main para buf breaking
+        run: git fetch --no-tags --depth=1 origin main:refs/remotes/origin/main
       - run: make buf

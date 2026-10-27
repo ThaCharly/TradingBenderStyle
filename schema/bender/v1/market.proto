@@ -1,0 +1,116 @@
+syntax = "proto3";
+
+package bender.v1;
+
+import "bender/v1/decimal.proto";
+import "bender/v1/instrument.proto";
+
+// Eventos de mercado (doc 01 §5). El instrumento y el tipo de dato van en
+// `Envelope.source`; los tiempos y la secuencia, en el sobre.
+//
+// Las velas no son eventos de mercado: se derivan de los trades.
+message MarketEvent {
+  oneof event {
+    Trade trade = 1;
+    BookSnapshot book_snapshot = 2;
+    BookDelta book_delta = 3;
+    TopOfBook top_of_book = 4;
+    MarkPrice mark_price = 5;
+    IndexPrice index_price = 6;
+    Funding funding = 7;
+    OpenInterest open_interest = 8;
+    Liquidation liquidation = 9;
+    InstrumentStatus instrument_status = 10;
+  }
+}
+
+// Lado de una orden o del agresor de un trade.
+enum Side {
+  SIDE_UNSPECIFIED = 0;
+  SIDE_BUY = 1;
+  SIDE_SELL = 2;
+}
+
+// Lado del libro.
+enum BookSide {
+  BOOK_SIDE_UNSPECIFIED = 0;
+  BOOK_SIDE_BID = 1;
+  BOOK_SIDE_ASK = 2;
+}
+
+message Trade {
+  Decimal price = 1;
+  Decimal qty_base = 2;
+  // Lado del agresor. UNSPECIFIED = el venue no lo informa.
+  Side aggressor_side = 3;
+  // Id del trade en el venue (sólo referencia; no es clave primaria).
+  optional string venue_trade_id = 4;
+}
+
+// Un nivel del libro.
+message BookLevel {
+  Decimal price = 1;
+  Decimal qty_base = 2;
+}
+
+// Foto completa del libro. Los niveles van del mejor al peor precio.
+message BookSnapshot {
+  repeated BookLevel bids = 1;
+  repeated BookLevel asks = 2;
+  optional uint64 venue_seq = 3;
+}
+
+// Cambio de un nivel. `qty_base` = 0 elimina el nivel.
+message BookChange {
+  BookSide side = 1;
+  Decimal price = 2;
+  Decimal qty_base = 3;
+}
+
+message BookDelta {
+  repeated BookChange changes = 1;
+  optional uint64 venue_seq = 2;
+}
+
+// Mejor compra y mejor venta. Un lado ausente = libro vacío de ese lado o no informado.
+message TopOfBook {
+  Decimal bid = 1;
+  Decimal bid_qty = 2;
+  Decimal ask = 3;
+  Decimal ask_qty = 4;
+}
+
+message MarkPrice {
+  Decimal price = 1;
+}
+
+message IndexPrice {
+  Decimal price = 1;
+}
+
+message Funding {
+  // Tasa del período (p. ej. 0.0001 = 0,01 %).
+  Decimal rate = 1;
+  // Duración del período de funding, ns.
+  optional int64 interval_ns = 2;
+  // Próximo cobro de funding, ns UTC.
+  optional int64 next_funding_time = 3;
+}
+
+message OpenInterest {
+  Decimal qty_base = 1;
+}
+
+// Liquidación publicada por el venue. `side` es el lado de la orden de liquidación.
+message Liquidation {
+  Side side = 1;
+  Decimal price = 2;
+  Decimal qty_base = 3;
+}
+
+// Pausa, deslistado o cambio de especificación.
+message InstrumentStatus {
+  InstrumentState state = 1;
+  // Presente si cambió la especificación: es la nueva versión vigente.
+  InstrumentSpec spec = 2;
+}

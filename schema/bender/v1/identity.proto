@@ -1,0 +1,124 @@
+syntax = "proto3";
+
+package bender.v1;
+
+// Identidad (doc 01 §2) y fuentes de eventos (doc 05 §1).
+//
+// Convenciones de todo el paquete:
+// - Tiempos: `int64` en nanosegundos UTC desde el epoch Unix, con sufijo `ts_`/`_time`.
+//   Duraciones: `int64` en nanosegundos, con sufijo `_ns`.
+// - Lo que una fuente puede no informar tiene presencia explícita (`optional` o mensaje):
+//   ausente = desconocido, nunca 0 ni "".
+// - En los enums, el valor 0 (`*_UNSPECIFIED`) significa "desconocido / no informado" y
+//   nunca es un valor válido.
+// - Los escalares sin `optional` son obligatorios y se marcan `[requerido]` en su
+//   comentario (lo verifica `check-schema`).
+
+// Activo o moneda: BTC, ETH, USDT, USDC, USD…
+message Asset {
+  // Código en mayúsculas, p. ej. "BTC". [requerido]
+  string code = 1;
+}
+
+// Familia de monedas de cotización equivalentes para el análisis canónico. La moneda de
+// cotización real del instrumento se conserva siempre en `InstrumentSpec.quote_asset`.
+enum QuoteFamily {
+  QUOTE_FAMILY_UNSPECIFIED = 0;
+  // USD, USDT, USDC, FDUSD… La lista vigente está en `QuoteFamilyDefinition`.
+  QUOTE_FAMILY_USD = 1;
+}
+
+// Qué activos forman una familia de cotización.
+message QuoteFamilyDefinition {
+  QuoteFamily family = 1;
+  repeated Asset members = 2;
+}
+
+// Par canónico, p. ej. BTC/USD: lo que mira el motor y donde viven los dibujos.
+message CanonicalPair {
+  Asset base = 1;
+  QuoteFamily quote_family = 2;
+}
+
+// Exchange o venue.
+enum Venue {
+  VENUE_UNSPECIFIED = 0;
+  VENUE_BINANCE = 1;
+  VENUE_BLOFIN = 2;
+  VENUE_BINGX = 3;
+  VENUE_MEXC = 4;
+  VENUE_BYBIT = 5;
+  VENUE_PAPER = 6;
+}
+
+// Tipo de mercado.
+enum MarketType {
+  MARKET_TYPE_UNSPECIFIED = 0;
+  MARKET_TYPE_SPOT = 1;
+  MARKET_TYPE_PERP_LINEAR = 2;
+  MARKET_TYPE_PERP_INVERSE = 3;
+  MARKET_TYPE_FUTURE_DATED = 4;
+}
+
+// Instrumento concreto. Forma de texto: `BINANCE:PERP_LINEAR:BTCUSDT`.
+message InstrumentId {
+  Venue venue = 1;
+  MarketType market_type = 2;
+  // Símbolo tal como lo usa el venue, p. ej. "BTCUSDT". [requerido]
+  string symbol = 3;
+}
+
+// Cuenta/subcuenta y billetera. Forma de texto: `BINANCE:principal:futures`.
+message AccountId {
+  Venue venue = 1;
+  // Nombre de la cuenta o subcuenta, p. ej. "principal". [requerido]
+  string account = 2;
+  // Billetera dentro de la cuenta, p. ej. "spot", "futures". [requerido]
+  string wallet = 3;
+}
+
+// Identificador ULID (ordenable por tiempo) de las entidades internas. Los ids del
+// exchange se guardan aparte y nunca son clave primaria (doc 01 §2).
+message Ulid {
+  // 16 bytes en orden big-endian. [requerido]
+  bytes value = 1;
+}
+
+// Tipo de dato de mercado de una fuente.
+enum MarketDataKind {
+  MARKET_DATA_KIND_UNSPECIFIED = 0;
+  MARKET_DATA_KIND_TRADES = 1;
+  MARKET_DATA_KIND_BOOK = 2;
+  MARKET_DATA_KIND_TOP_OF_BOOK = 3;
+  MARKET_DATA_KIND_MARK_PRICE = 4;
+  MARKET_DATA_KIND_INDEX_PRICE = 5;
+  MARKET_DATA_KIND_FUNDING = 6;
+  MARKET_DATA_KIND_OPEN_INTEREST = 7;
+  MARKET_DATA_KIND_LIQUIDATIONS = 8;
+  MARKET_DATA_KIND_INSTRUMENT_STATUS = 9;
+}
+
+// Fuente de eventos del núcleo (doc 05 §1). Formas de texto:
+// `BINANCE:PERP_LINEAR:BTCUSDT:trades`, `USER:drawings`, `CLOCK`.
+message SourceId {
+  oneof kind {
+    MarketSource market = 1;
+    UserSource user = 2;
+    ClockSource clock = 3;
+  }
+}
+
+// Fuente de mercado: venue + instrumento + tipo de dato.
+message MarketSource {
+  InstrumentId instrument = 1;
+  MarketDataKind data_kind = 2;
+}
+
+// Fuente de acciones del usuario (doc 05 §7).
+message UserSource {
+  // Flujo, p. ej. "drawings". [requerido]
+  string stream = 1;
+}
+
+// Fuente de latidos de reloj (doc 05 §3).
+message ClockSource {}

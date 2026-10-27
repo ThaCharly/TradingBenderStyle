@@ -1,0 +1,10 @@
+syntax = "proto3";
+
+package bender.v1;
+
+// Acción del usuario: dibujos, niveles, alertas, configuración (doc 05 §7).
+//
+// Sólo se reserva el tipo para que el sobre quede completo. Las variantes
+// (`DrawingUpserted`, `DrawingDeleted`, …) llegan con #27 (M1-06); agregarlas no rompe
+// compatibilidad.
+message UserEvent {}

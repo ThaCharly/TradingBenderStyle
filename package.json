@@ -9,7 +9,8 @@
   "scripts": {
     "lint": "pnpm -r lint",
     "test": "pnpm -r test",
-    "buf:lint": "buf lint"
+    "buf:lint": "buf lint",
+    "buf:breaking": "buf breaking --against '.git#ref=origin/main'"
   },
   "devDependencies": {
     "@bufbuild/buf": "^1.75.0",

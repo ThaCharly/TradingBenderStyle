@@ -1,0 +1,24 @@
+syntax = "proto3";
+
+package bender.v1;
+
+// Decimal de punto fijo para precios, cantidades, comisiones, saldos y PnL (Pilar 1:
+// nada de floats para plata).
+//
+// valor = mantisa × 10^(−scale), con mantisa = mantissa_hi × 2^64 + mantissa_lo
+// (entero con signo de 128 bits en complemento a dos, partido en dos mitades).
+//
+// La mantisa de 128 bits cubre cualquier escala de 0 a 18 con margen (ver doc 01 §1).
+// En la práctica casi todos los valores caben en 64 bits: `mantissa_hi` vale 0 (o −1 si
+// es negativo) y proto3 no lo serializa cuando es 0.
+//
+// No se normaliza: 1.50 (mantisa 150, escala 2) y 1.5 (15, 1) son el mismo número pero
+// distintos mensajes. El productor conserva la escala que informó la fuente.
+message Decimal {
+  // 64 bits bajos de la mantisa, sin signo. [requerido]
+  uint64 mantissa_lo = 1;
+  // 64 bits altos de la mantisa; llevan el signo. [requerido]
+  int64 mantissa_hi = 2;
+  // Cantidad de dígitos decimales. [requerido]
+  uint32 scale = 3;
+}
