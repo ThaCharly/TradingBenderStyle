@@ -97,7 +97,8 @@ graph LR
 | M2-09 | #40 Backfill Bitstamp + Coinbase | #39 |
 | M2-10 | #41 Backfill Bybit | #39 |
 | M2-11 | #42 Calidad de datos | #32, #39 |
-| M2-12 | #43 Operación del grabador | #32 |
+| M2-12 | #43 Operación del grabador y retención (ADR-0009) | #32 |
+| M2-13 | #138 Spike: inventario de tradfi gratuito | #33 |
 
 ## M3 — Gráfica · épico #5
 
@@ -126,7 +127,7 @@ graph LR
 | M4-04 | #59 Perfiles de despliegue, usuarios, ACL, firewall | #21 |
 | M4-05 | #60 Leases y cola de trabajos | #21 |
 | M4-06 | #61 Sincronización de segmentos por hash | #22, #21 |
-| M4-07 | #62 Infra doméstica (UPS, watchdog, IP) | #59 |
+| M4-07 | #62 Infra doméstica (UPS, watchdog, IP fija) | #59 |
 
 ## M5 — Alertas · épico #7
 
@@ -182,7 +183,7 @@ graph LR
 |---|---|---|
 | M8-01 | #96 Features L1 | #29, #26 |
 | M8-02 | #97 Registro de niveles con procedencia | #96 |
-| M8-03 | #98 Detector de canales a la manera del usuario | #97, #50 |
+| M8-03 | #98 Detector de canales (`necesita-refinamiento`: definiciones con el usuario) | #97, #50 |
 | M8-04 | #99 Herramienta "marcar inicio de canal" | #98, #54 |
 | M8-05 | #100 S/R, sesiones, POC vírgenes, redondos, Fibo, niveles propios | #97, #50 |
 | M8-06 | #101 Eventos L3 versionados | #97 |
