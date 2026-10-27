@@ -141,6 +141,18 @@ explícitamente una `FutureWindow`. El sistema de tipos impide que una feature r
   configuración (incluidos δ, `L`, `G`, `M` y versiones de definiciones de eventos) y hash
   de la salida.
 
+Implementación (`bender_kernel::state`):
+
+- `KernelState` reúne reloj, velas por fuente, compuestas, objetos del usuario y cobertura.
+  Sus salidas se encadenan en un hash (`h ← BLAKE3(h ‖ salida)`).
+- Serialización canónica (`canonical`): enteros big-endian, textos con largo, mapas en
+  orden de clave. Los cachés recalculables no se guardan.
+- Checkpoint = bytes canónicos + su BLAKE3. Al leerlo se verifica. `restore(T)` usa el
+  checkpoint del día de `T` y, si está corrupto, el anterior.
+- `KernelConfig` incluye `L`, `M`, `G`, los δ, las temporalidades, la versión y el hash de
+  `source_rank`, las definiciones de compuestas y las versiones de payload. Su hash va al
+  `RunManifest` junto con los segmentos leídos, el commit y el hash de salida.
+
 ## 11. Pruebas normativas
 
 1. **Incremental = batch**: mismo hash de salida.

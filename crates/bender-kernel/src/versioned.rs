@@ -87,3 +87,20 @@ impl<K: Ord + Clone, V: Clone> VersionedStore<K, V> {
         self.history.get(key).map_or(&[], Vec::as_slice)
     }
 }
+
+// ---------------------------------------------------------------------------------------
+// Serialización canónica (checkpoints).
+
+use crate::canonical::{CheckpointError, Checkpointable, Decoder, Encoder};
+
+impl<K: Ord + Checkpointable, V: Checkpointable> Checkpointable for VersionedStore<K, V> {
+    fn encode(&self, e: &mut Encoder) {
+        e.put(&self.history).put(&self.last_ts);
+    }
+    fn decode(d: &mut Decoder<'_>) -> Result<Self, CheckpointError> {
+        Ok(Self {
+            history: d.get()?,
+            last_ts: d.get()?,
+        })
+    }
+}

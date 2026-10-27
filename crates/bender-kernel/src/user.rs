@@ -7,6 +7,7 @@ use crate::versioned::{StaleUpdate, VersionedStore};
 
 /// Tipo de objeto del usuario.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[repr(u8)]
 pub enum UserObjectKind {
     Drawing,
     Level,
@@ -177,3 +178,46 @@ pub fn user_envelope(
         payload: Some(envelope::Payload::User(event)),
     }
 }
+
+// ---------------------------------------------------------------------------------------
+// Serialización canónica (checkpoints).
+
+use crate::canonical::{CheckpointError, Checkpointable, Decoder, Encoder};
+
+impl Checkpointable for UserObjectKind {
+    fn encode(&self, e: &mut Encoder) {
+        e.put(&(*self as u8));
+    }
+    fn decode(d: &mut Decoder<'_>) -> Result<Self, CheckpointError> {
+        match d.get::<u8>()? {
+            0 => Ok(Self::Drawing),
+            1 => Ok(Self::Level),
+            2 => Ok(Self::Alert),
+            3 => Ok(Self::Config),
+            x => Err(CheckpointError::Invalid(format!("UserObjectKind {x}"))),
+        }
+    }
+}
+
+crate::checkpoint_struct!(UserObject {
+    version,
+    data,
+    author
+});
+crate::checkpoint_struct!(UnknownPayload {
+    kind,
+    id,
+    version,
+    ts_available
+});
+crate::checkpoint_struct!(KnownVersions {
+    drawing,
+    level,
+    alert,
+    config
+});
+crate::checkpoint_struct!(UserProjection {
+    known,
+    objects,
+    unknown
+});

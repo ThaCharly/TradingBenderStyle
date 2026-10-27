@@ -419,3 +419,82 @@ impl CompositeAggregator {
         }
     }
 }
+
+// ---------------------------------------------------------------------------------------
+// Serialización canónica (checkpoints).
+
+use crate::canonical::{CheckpointError, Checkpointable, Decoder, Encoder};
+
+impl Checkpointable for PriceRule {
+    fn encode(&self, e: &mut Encoder) {
+        match self {
+            Self::Vwap => e.put(&0u8),
+            Self::Reference(s) => e.put(&1u8).put(s),
+        };
+    }
+    fn decode(d: &mut Decoder<'_>) -> Result<Self, CheckpointError> {
+        match d.get::<u8>()? {
+            0 => Ok(Self::Vwap),
+            1 => Ok(Self::Reference(d.get()?)),
+            x => Err(CheckpointError::Invalid(format!("PriceRule {x}"))),
+        }
+    }
+}
+
+crate::checkpoint_struct!(CompositeDefinition {
+    id,
+    version,
+    members,
+    price_rule
+});
+crate::checkpoint_struct!(CompositeConfig {
+    lateness_ns,
+    max_wait_ns,
+    revision_horizon_ns
+});
+crate::checkpoint_struct!(SourceVolume {
+    volume_base,
+    volume_quote,
+    buy_volume_base,
+    sell_volume_base,
+    trade_count,
+});
+crate::checkpoint_struct!(Ohlc {
+    open,
+    high,
+    low,
+    close,
+    first_ts_event,
+    last_ts_event
+});
+crate::checkpoint_struct!(CompositeBar {
+    definition_id,
+    definition_version,
+    timeframe,
+    start,
+    end,
+    prices,
+    vwap,
+    volume_base,
+    volume_quote,
+    buy_volume_base,
+    sell_volume_base,
+    trade_count,
+    per_source,
+    incomplete_sources,
+    revision,
+    state,
+});
+crate::checkpoint_struct!(TfState {
+    tf,
+    forming,
+    closed
+});
+crate::checkpoint_struct!(CompositeAggregator {
+    def,
+    config,
+    tfs,
+    max_ts_event,
+    clock,
+    late_dropped,
+});

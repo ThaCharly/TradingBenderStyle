@@ -4,6 +4,7 @@
 //! evento que se procesa. Lo garantizan el `clippy.toml` del crate y `tools/arch-tests`.
 
 pub mod bars;
+pub mod canonical;
 pub mod clock;
 pub mod composite;
 pub mod coverage;
@@ -11,6 +12,7 @@ pub mod heartbeat;
 pub mod merge;
 pub mod order;
 pub mod spec;
+pub mod state;
 pub mod user;
 pub mod versioned;
 
@@ -27,6 +29,10 @@ pub use heartbeat::{DEFAULT_GRID_NS, synthetic_heartbeats};
 pub use merge::{Merge, MergeError};
 pub use order::{Ordered, SourceOrder, SourceRankTable, UnknownSource, compare};
 pub use spec::{SpecError, SpecHistory};
+pub use state::{
+    AvailabilityDelays, CheckpointSource, KernelConfig, KernelError, KernelOutput, KernelState,
+    Restored, RunManifest, checkpoint_day_start, restore,
+};
 pub use user::{
     KnownVersions, UnknownPayload, UserObject, UserObjectKind, UserProjection, user_envelope,
 };

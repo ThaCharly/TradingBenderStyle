@@ -317,6 +317,47 @@ impl Store {
             .collect())
     }
 
+    fn checkpoint_path(&self, name: &str, day_start_ns: i64) -> PathBuf {
+        self.root
+            .join("checkpoints")
+            .join(source_dir(name))
+            .join(format!("{}.bin", date_string(day_number(day_start_ns))))
+    }
+
+    /// Guarda el checkpoint `name` del día que empieza en `day_start_ns` (00:00 UTC). La
+    /// escritura es atómica (temporal + renombre); el contenido lleva su propio hash, que
+    /// verifica quien lo lee (`KernelState::from_checkpoint`).
+    pub fn put_checkpoint(
+        &self,
+        name: &str,
+        day_start_ns: i64,
+        bytes: &[u8],
+    ) -> Result<PathBuf, StoreError> {
+        let path = self.checkpoint_path(name, day_start_ns);
+        let dir = path.parent().expect("carpeta del checkpoint");
+        std::fs::create_dir_all(dir)?;
+        let tmp = path.with_extension("bin.tmp");
+        let mut file = File::create(&tmp)?;
+        file.write_all(bytes)?;
+        file.sync_all()?;
+        std::fs::rename(&tmp, &path)?;
+        sync_dir(dir);
+        Ok(path)
+    }
+
+    /// Bytes del checkpoint `name` del día que empieza en `day_start_ns`, si existe.
+    pub fn get_checkpoint(
+        &self,
+        name: &str,
+        day_start_ns: i64,
+    ) -> Result<Option<Vec<u8>>, StoreError> {
+        match std::fs::read(self.checkpoint_path(name, day_start_ns)) {
+            Ok(bytes) => Ok(Some(bytes)),
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(None),
+            Err(e) => Err(e.into()),
+        }
+    }
+
     /// Cantidad de segmentos por fuente y zona (para reportes).
     pub fn summary(&self) -> BTreeMap<(Zone, String), (usize, u64)> {
         let mut out = BTreeMap::new();
