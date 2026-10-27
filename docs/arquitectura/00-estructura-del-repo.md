@@ -38,7 +38,7 @@ apps/client/                    front TypeScript (Vite, pnpm)
 apps/shell/                     Tauri 2 (escritorio + Android)
 deploy/profiles/                perfiles de nodo (server, workstation, phone, dev-all)
 tools/devtools/                 herramientas del repo (check-docs-links, …)
-tools/arch-tests/               tests de arquitectura (grafo de dependencias, lints)
+tools/arch-tests/               tests de arquitectura: rules.toml (grafo, reloj) y eslint-rules.js; ver AGENTES.md
 docs/                           plan, arquitectura, ADRs, roadmap
 ```
 
@@ -58,7 +58,7 @@ binarios del test de ida y vuelta Rust → TS se regeneran con
 | Área | Herramientas | Target | Qué corre |
 |---|---|---|---|
 | Docs | Rust (`tools/devtools`) | `make docs` | `check-docs-links` (enlaces internos) |
-| Rust | toolchain fijada en `rust-toolchain.toml`, clippy, rustfmt | `make rust` | `cargo fmt --check`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo test --workspace` |
+| Rust | toolchain fijada en `rust-toolchain.toml`, clippy, rustfmt | `make rust` | `cargo fmt --check`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo test --workspace`, `cargo run -p arch-tests` |
 | TypeScript | pnpm (workspace en la raíz), TypeScript 6.0, Vite, Vitest, ESLint + typescript-eslint | `make ts` | `pnpm -r lint` (incluye `tsc --noEmit`), `pnpm -r test` |
 | Código generado | `tools/devtools` (`gen-types`), buf + `protoc-gen-es` | `make gen-check` | regenera y falla si hay diferencias con lo commiteado |
 | Protobuf | buf (dependencia de pnpm; `buf.yaml` en la raíz, módulo `schema/`) | `make buf` | `buf lint`, `buf breaking` contra `origin/main` y `check-schema` (sin `float`/`double`; todo escalar con presencia explícita o marcado `[requerido]`) |

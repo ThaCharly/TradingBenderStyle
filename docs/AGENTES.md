@@ -38,6 +38,26 @@ Requisitos y detalles en el [README](../README.md) y en
   en el issue y pará.
 - Si cambiás un comportamiento especificado, actualizá el documento en el mismo PR.
 
+## Tests de arquitectura
+
+Las reglas anteriores las verifica la CI desde `make rust` y `make ts`. Se declaran en
+[`tools/arch-tests/rules.toml`](../tools/arch-tests/rules.toml) (Rust) y
+[`tools/arch-tests/eslint-rules.js`](../tools/arch-tests/eslint-rules.js) (TypeScript).
+
+| Regla | Qué prohíbe | Cómo se verifica |
+|---|---|---|
+| `pilar2-reloj` | Leer el reloj del sistema (`SystemTime::now`/`elapsed`, `Instant::now`/`elapsed`, `chrono::{Utc,Local}::now`, `ulid::Ulid::new`) en `bender-kernel`, `bender-engine`, `bender-runner` y `bender-venue-sim` | Cada uno tiene un `clippy.toml` con `disallowed-methods`. El lint es `forbid` en el workspace, así que `#[allow]` no lo apaga. `arch-tests` comprueba que los `clippy.toml` existan y estén completos. |
+| `pilar3-trading-privado` | Depender de `bender-venue-{binance,blofin,bingx,bybit,mexc}` con la feature `private` desde cualquier crate que no sea `bender-execution`. Cuenta tanto si se pide explícitamente como si llega por `default` | `cargo run -p arch-tests` sobre `cargo metadata` |
+| `adr0006-llm-sin-ejecucion` | Que `bender-mcp` (o el antiguo `bender-llm-gateway`) dependa, directa o transitivamente, de `bender-commands-client` o `bender-execution` | `cargo run -p arch-tests` |
+| `pilar3-analisis-sin-venues` | Que `bender-kernel` o `bender-engine` dependan, directa o transitivamente, de un `bender-venue-*` o de `bender-execution` | `cargo run -p arch-tests` |
+| ADR-0006 en TS | Que el módulo LLM del cliente (`apps/client/packages/llm*`, `apps/shell/**/llm/`) importe `@bender/commands-client` | ESLint `no-restricted-imports` (`pnpm -r lint`) |
+
+En las reglas de grafo, del crate vigilado cuentan todas sus dependencias (también las de
+desarrollo). En los saltos siguientes cuentan sólo las normales y de build. Para agregar un
+crate a la regla de reloj, sumalo a `[clock]` en `rules.toml` y copiale el `clippy.toml`
+de `crates/bender-kernel`. Si un crate nuevo cae bajo una regla y la necesita romper, eso
+es un cambio de arquitectura: se registra como ADR, no se edita la regla.
+
 ## Definición de terminado (para todo issue)
 
 - [ ] Todos los criterios de aceptación del issue se cumplen y son verificables con un
