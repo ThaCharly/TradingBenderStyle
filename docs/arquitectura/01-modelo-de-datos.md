@@ -133,6 +133,9 @@ created → submitted → accepted → partially_filled → filled
           (server_trigger: created → armed → triggered → submitted …)
 ```
 
+Los nombres canónicos de los estados (`NEW`, `PENDING_SUBMIT`, …, `UNKNOWN`) son los de
+[doc 06 §3](06-ejecucion-futuros.md#3-máquina-de-estados-de-una-orden).
+
 Cada transición es un `OrderEvent` con el mensaje crudo del exchange adjunto. Si un
 exchange no informa un estado intermedio, se infiere y se marca como inferido.
 
