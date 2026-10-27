@@ -118,6 +118,13 @@ impl Decimal {
     }
 
     pub fn checked_add(self, other: Self) -> Result<Self, DecimalError> {
+        if self.scale == other.scale {
+            let mantissa = self
+                .mantissa
+                .checked_add(other.mantissa)
+                .ok_or(DecimalError::Overflow)?;
+            return Ok(Self { mantissa, ..self });
+        }
         let (a, b, scale) = self.aligned(other)?;
         let mantissa = a.checked_add(b).ok_or(DecimalError::Overflow)?;
         Ok(Self { mantissa, scale })
@@ -166,6 +173,9 @@ impl Eq for Decimal {}
 
 impl Ord for Decimal {
     fn cmp(&self, other: &Self) -> Ordering {
+        if self.scale == other.scale {
+            return self.mantissa.cmp(&other.mantissa);
+        }
         let (a, b) = (self.normalized(), other.normalized());
         match a.aligned(b) {
             Ok((x, y, _)) => x.cmp(&y),

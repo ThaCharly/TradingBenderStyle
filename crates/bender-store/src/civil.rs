@@ -1,6 +1,6 @@
-//! Fecha civil UTC de un instante en ns (algoritmo de Howard Hinnant, `civil_from_days`).
+//! Fecha civil UTC de un instante en ns, para nombrar las particiones por día.
 
-const NS_PER_DAY: i64 = 86_400_000_000_000;
+use bender_types::{NS_PER_DAY, civil_from_days};
 
 /// Número de día desde el epoch (puede ser negativo).
 pub fn day_number(ts_ns: i64) -> i64 {
@@ -9,15 +9,7 @@ pub fn day_number(ts_ns: i64) -> i64 {
 
 /// "AAAA-MM-DD" del día `days` desde 1970-01-01.
 pub fn date_string(days: i64) -> String {
-    let z = days + 719_468;
-    let era = z.div_euclid(146_097);
-    let doe = z.rem_euclid(146_097);
-    let yoe = (doe - doe / 1_460 + doe / 36_524 - doe / 146_096) / 365;
-    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
-    let mp = (5 * doy + 2) / 153;
-    let day = doy - (153 * mp + 2) / 5 + 1;
-    let month = if mp < 10 { mp + 3 } else { mp - 9 };
-    let year = yoe + era * 400 + i64::from(month <= 2);
+    let (year, month, day) = civil_from_days(days);
     format!("{year:04}-{month:02}-{day:02}")
 }
 
