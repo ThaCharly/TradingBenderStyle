@@ -2,7 +2,7 @@
 
 - Estado: **aceptada** (revoca la decisión "renderer propio" del plan v2)
 - Fecha: 2026-10-27
-- Verificación pendiente: spike #M3-spike (criterios en §6)
+- Verificación pendiente: spike #44 (M3-01, criterios en §5–6)
 
 ## 1. Contexto
 
@@ -89,7 +89,7 @@ Si cualquiera de estos falla en el spike o después, se abre una ADR nueva para 
 
 ## 6. Spike de validación
 
-El issue del spike en M3 implementa con A: velas de 1 s con 200k barras, un perfil de
+El issue del spike (#44) implementa con A: velas de 1 s con 200k barras, un perfil de
 volumen anclado, una línea de tendencia y un rectángulo arrastrables, una línea de orden
 arrastrable, un dibujo anclado en el futuro, 4 gráficas sincronizadas, y mide los
 criterios de §5 en PC y en el S25 (WebView de Tauri). El resultado se registra en esta ADR.
