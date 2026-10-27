@@ -37,14 +37,19 @@ impl Ordered for proto::Envelope {
 }
 
 /// Posición de una fuente en el orden: su `source_rank` y su clave canónica.
-#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct SourceOrder {
     pub rank: u32,
     pub key: String,
 }
 
 /// Compara dos eventos según `K`, con la clave de la fuente como último desempate.
-pub fn compare<T: Ordered>(a: &T, sa: &SourceOrder, b: &T, sb: &SourceOrder) -> Ordering {
+pub fn compare<A: Ordered, B: Ordered>(
+    a: &A,
+    sa: &SourceOrder,
+    b: &B,
+    sb: &SourceOrder,
+) -> Ordering {
     a.ts_available()
         .cmp(&b.ts_available())
         .then(sa.rank.cmp(&sb.rank))
