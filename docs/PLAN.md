@@ -52,11 +52,13 @@ Y los principios que se derivan:
 
 | Tema | Decisión |
 |---|---|
-| Servidor | **Mini-PC en casa**, 24/7 |
+| Servidor | **Mini-PC en casa**, 24/7, con **IP fija** del proveedor; disco **~1 TB** (ampliable; VPS o disco externo si falta) |
+| Desarrollo | **PC local** con el perfil `dev-all` (todo en una máquina, en paper); la mini-PC entra cuando haga falta 24/7 |
+| Universo inicial | **BTC y ETH** (spot + perps); tradfi **si es gratis** de poner (ver §4.2 e issue del inventario) |
 | GPU | RTX 5050 8 GB (corre 4B, 9B y MoE 35B a 20–25 t/s) |
 | LLM en el celular | Samsung S25 (Snapdragon 8 Elite, 12 GB) → **4B en el dispositivo** |
 | Temporalidades | **Todas**, de 1 segundo a 1 año, más personalizadas. Uso principal: **4H y 30m** |
-| Rangos | Desde el punto actual hacia atrás hasta donde **empieza el canal** de lateralización |
+| Rangos y canales | Desde el punto actual hacia atrás hasta donde **empieza el canal**. Los canales inclinados existen pero **no** son lo mismo que los rangos de área. **Las definiciones de análisis técnico se cierran más adelante** (§8.1) |
 | Volumen | **Multi-venue, spot y perps**: Binance, BloFin, BingX, MEXC, Bybit… |
 | Dispositivos | **Operar, alertas y mirar en PC y celular** por igual |
 | Exchanges | Real hoy: **Binance**. Después: **BloFin** (ya tenés), **BingX**, y quizás **MEXC/Bybit** |
@@ -103,13 +105,8 @@ grande. Cada componente puede moverse de nodo por configuración
   - Los triggers de servidor se marcan con advertencia y, opcionalmente, al detectar
     corte prolongado se notifica desde un watchdog externo (ver abajo).
   - SL/TP de futuros **siempre nativos** en el exchange.
-- **IP fija**: los exchanges exigen o recomiendan whitelist de IP para claves con
-  permiso de trading (Binance restringe las claves de trading sin IP; verificar política
-  vigente). Con IP dinámica de casa hay dos opciones:
-  1. Pedir **IP fija** al proveedor de internet.
-  2. Salir a los exchanges a través de un **VPS mínimo con IP fija** por túnel WireGuard.
-     El VPS sólo reenvía tráfico TLS cifrado de punta a punta: las claves nunca salen de
-     tu casa.
+- **IP fija**: decidido, **IP fija del proveedor** (whitelist de IP en las claves de
+  trading). El VPS de salida queda sólo como plan B si la IP fija cambia o falla.
 - **Watchdog externo**: un chequeo de vida liviano (el mismo VPS o un servicio gratuito)
   que te avisa por Telegram si la mini-PC dejó de responder.
 
@@ -169,6 +166,14 @@ Histórico descargable (reconstruido, `provenance = backfill`):
 
 No lo operás; su rol es **datos de entrenamiento** para el modelo tradfi y **contexto
 macro**. Eso simplifica mucho: no hace falta feed en vivo al principio.
+
+**Gratis desde el día uno** (inventario en un spike de M2):
+- **Perps "TradFi" listados en los exchanges que ya grabamos** (oro, índices, acciones;
+  qué hay exactamente y desde cuándo hay que verificarlo por venue). Son gratis y entran
+  por el mismo grabador. Pero son **proxies**: cotizan 24/7 con volumen propio del
+  exchange, así que sirven para mirar y alertar, **no** como datos de entrenamiento del
+  modelo tradfi.
+- **Históricos diarios gratuitos** de SPY, NQ, CL y Brent como referencia visual.
 
 1. **Prototipo**: históricos diarios gratuitos de SPY, NQ/QQQ, CL y Brent para armar el
    pipeline de sesiones y roll de futuros.
@@ -300,6 +305,12 @@ y toda probabilidad que emite cumple el [Pilar 4](arquitectura/04-probabilidades
 ```
 
 ### 8.1 Rangos y canales, a tu manera
+
+> **Estado: a definir con el usuario.** Primero se construye la herramienta genérica
+> (perfil anclado que marcás vos, herramienta "marcar inicio de canal", canal paralelo
+> dibujable) y se usa. Con eso se especifica el detector. Lo que sigue es la propuesta
+> inicial, no una especificación cerrada. Los canales inclinados se tratan como un
+> concepto aparte de los rangos de área.
 
 Tu método: **desde el punto actual hacia atrás, hasta donde empieza el canal** en el que el
 precio lateraliza. El ancla es el inicio del canal (en tu ejemplo, el máximo de 93000 del
@@ -454,13 +465,28 @@ auditable → M10 Diario → M11 LLM → M12 ML → M13 Tradfi → M14 Elliott y
 
 ---
 
-## 13. Preguntas abiertas
+## 13. Decisiones: cuáles ahora y cuáles después
 
-1. **IP fija**: ¿tu proveedor de internet te la da, o vamos por el VPS de salida?
-2. **Universo inicial**: ¿qué pares además de BTC y ETH querés en la lista desde el día
-   uno?
-3. **Disco**: ¿cuánto almacenamiento tiene o puede tener la mini-PC?
-4. **Canales**: ¿te pasa de marcar canales inclinados además de horizontales, o casi
-   siempre son laterales?
-5. **GPU**: ¿la RTX 5050 está en la PC o en la mini-PC? Define en qué nodo corren
-   `worker` y `llm-gateway` (sólo cambia el perfil de despliegue).
+Tiempo ilimitado no significa decidir todo hoy. Se decide **en el último momento
+responsable**: cuando postergar cuesta más que decidir. Cada decisión diferida tiene un
+disparador.
+
+### Decididas
+IP fija · desarrollo en la PC local · universo BTC/ETH · presupuesto de disco y retención
+([ADR-0009](decisiones/ADR-0009-presupuesto-de-disco.md)).
+
+### Pendientes que bloquean el primer issue
+1. **Rama `main`** en GitHub como rama por defecto (hoy la rama por defecto es la de la
+   sesión de planificación). La CI de #2 la asume.
+
+### Diferidas, con su disparador
+| Decisión | Se decide cuando… |
+|---|---|
+| Definiciones de canales, rangos de área y eventos | se use la herramienta genérica (M3) y empiece M8 (#98 marcado `necesita-refinamiento`) |
+| Dónde está la GPU (PC o mini-PC) | empiece M9 o M11 (sólo cambia el perfil de despliegue) |
+| Cuándo pasa el grabador a la mini-PC | apenas exista #32; ver recomendación en ADR-0009 |
+| Shell móvil y canal de push | termine el spike #45 |
+| Confirmar Lightweight Charts | termine el spike #44 |
+| Compra de datos tradfi intradía | se cierre M9 (#133) |
+| Exchanges secundarios para operar | terminen los spikes #79–#82 |
+| VPS o disco extra | el monitoreo de disco (#43) proyecte < 90 días de espacio |

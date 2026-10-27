@@ -31,6 +31,10 @@ hoy o dentro de dos años.
 
 La zona cruda es la verdad. Todo lo demás se puede tirar y reconstruir.
 
+**Retención** ([ADR-0009](../decisiones/ADR-0009-presupuesto-de-disco.md)): la zona cruda
+se conserva 90 días. Pasado ese plazo, la zona normalizada (validada a diario por el
+control de calidad) pasa a ser la verdad de largo plazo.
+
 ---
 
 ## 3. Bitemporalidad
