@@ -43,13 +43,16 @@ graph LR
   M9 --> M12[M12 ML]
   M9 --> M13[M13 Tradfi]
   M9 --> M14[M14 Elliott y extras]
+  M3 --> M15[M15 MCP de análisis]
+  M15 --> M11
 ```
 
 ## Prototipo inicial (P0) · seguimiento #141
 
 Lo primero que se construye: grabador de Binance BTC/ETH + gráfica local con máquina del
 tiempo, en la PC. Qué incluye, qué demuestra y qué no: [PROTOTIPO.md](PROTOTIPO.md).
-Después, **P1 — grabador en producción**: #33, #42, #43, #139, #34–#37 y el gate #140.
+Después, **P1 — grabador en producción**: #33, #42, #43, #139, #34–#37 y el gate #140; y la
+**base del MCP** (#144–#147, #149).
 
 ## Por dónde empezar (sin dependencias pendientes)
 
@@ -86,7 +89,7 @@ Después, **P1 — grabador en producción**: #33, #42, #43, #139, #34–#37 y e
 | M1-07 | #28 Checkpoints y manifiestos | #22, #25, #27 |
 | M1-08 | #29 Runner (live/replay/backtest/dataset) | #28 |
 | M1-09 | #30 Tests normativos y test dorado | #29, #26 |
-| M1-10 | #31 Bindings Python | #29 |
+| M1-10 | ~~#31 Bindings Python~~ cancelado (ADR-0012) | — |
 
 ## M2 — Datos · épico #4
 
@@ -107,6 +110,7 @@ Después, **P1 — grabador en producción**: #33, #42, #43, #139, #34–#37 y e
 | M2-13 | #138 Spike: inventario de tradfi gratuito | #33 |
 | M2-14 | #139 Archivado comprimido de datos irreemplazables | #22, #43 |
 | M2-15 | #140 Gate de producción y migración a la mini-PC | #32, #42, #43, #139 |
+| M2-16 | #156 Validación de velas propias vs oficiales de Binance (P0) | #32, #25 |
 
 ## M3 — Gráfica · épico #5
 
@@ -136,6 +140,7 @@ Después, **P1 — grabador en producción**: #33, #42, #43, #139, #34–#37 y e
 | M4-05 | #60 Leases y cola de trabajos | #21 |
 | M4-06 | #61 Sincronización de segmentos por hash | #22, #21 |
 | M4-07 | #62 Infra doméstica (UPS, watchdog, IP fija) | #59 |
+| M4-08 | #155 Lanzador `dev-all` mínimo (P0) | #32, #46, #48 |
 
 ## M5 — Alertas · épico #7
 
@@ -205,7 +210,7 @@ Después, **P1 — grabador en producción**: #33, #42, #43, #139, #34–#37 y e
 |---|---|---|
 | M9-01 | #105 Etiquetador de tres resultados | #101, #29 |
 | M9-02 | #106 Registro de hipótesis | #2 |
-| M9-03 | #107 Dataset histórico de eventos | #105, #40, #31 |
+| M9-03 | #107 Dataset histórico de eventos | #105, #40 |
 | M9-04 | #108 Modelos base B0–B4 | #107 |
 | M9-05 | #109 Walk-forward, caja fuerte, N efectivo | #107 |
 | M9-06 | #110 Métricas de calibración y discriminación | #109 |
@@ -229,9 +234,9 @@ Después, **P1 — grabador en producción**: #33, #42, #43, #139, #34–#37 y e
 
 | ID | Issue | Bloqueado por |
 |---|---|---|
-| M11-01 | #121 llm-gateway con herramientas de consulta | #119, #56, #112 |
-| M11-02 | #122 assistant_notes | #116, #56 |
-| M11-03 | #123 Seis pruebas de aislamiento en CI | #121, #122, #59, #20 |
+| M11-01 | #121 LLM local como cliente de `bender-mcp` | #144, #148, #153 |
+| M11-02 | ~~#122 assistant_notes~~ reemplazado por #145 | — |
+| M11-03 | #123 Aislamiento del LLM local (Android y estación) | #121, #149, #59, #20 |
 | M11-04 | #124 Runtime en la estación + chat | #121 |
 | M11-05 | #125 Runtime Android aislado | #121, #55, #58 |
 | M11-06 | #126 Set de evaluación | #121 |
@@ -261,3 +266,22 @@ Después, **P1 — grabador en producción**: #33, #42, #43, #139, #34–#37 y e
 | M14-01 | #135 Elliott | #97, #112 |
 | M14-02 | #136 DSL de indicadores | #52, #63 |
 | M14-03 | #137 Footprint y heatmap | #48, #32 |
+
+## M15 — MCP de análisis · épico #143 ([ADR-0013](decisiones/ADR-0013-mcp-de-analisis.md))
+
+La base entra **después de P0**; el resto se agrega a medida que existen los milestones de
+los que depende.
+
+| ID | Issue | Bloqueado por |
+|---|---|---|
+| M15-01 | #144 `bender-mcp` base: stdio, catálogo cerrado, mercado y tu análisis, sesiones ancladas | #46, #27, #20 |
+| M15-02 | #145 Capa de IA: notas, dibujos y niveles propuestos | #144, #27 |
+| M15-03 | #146 Capa de IA en la gráfica: aceptar y descartar | #145, #49, #54 |
+| M15-04 | #147 Configuración para Claude Code, Claude Desktop y Codex; prompts de análisis | #144 |
+| M15-05 | #148 HTTP por Tailscale, tokens y niveles de datos | #144, #56, #59 |
+| M15-06 | #149 Pruebas de aislamiento del MCP | #144, #145, #20 |
+| M15-07 | #150 Herramientas: indicadores y perfiles | #144, #50, #52 |
+| M15-08 | #151 Herramientas: motor | #144, #101, #102 |
+| M15-09 | #152 Herramientas: estimaciones y casos | #144, #112 |
+| M15-10 | #153 Herramientas: diario, trades y cuenta con niveles de datos | #148, #119 |
+| M15-11 | #154 Herramientas: alertas e hipótesis propuestas | #145, #63, #106 |

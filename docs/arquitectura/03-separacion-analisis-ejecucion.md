@@ -16,7 +16,7 @@ violar por accidente o por un bug.
 | `marketdata` (ingesta + grabador) | no | no | datos públicos |
 | `engine` (niveles, eventos, estadística) | no | no | market data |
 | `ml` / research (offline) | no | no | datasets |
-| `llm-gateway` (PC y celular) | no | no | API de sólo lectura |
+| `bender-mcp` (servidor MCP: LLM local, Claude, Codex) | no | no | API de sólo lectura |
 | `api` (UI, diario, dibujos, alertas) | no | no (sólo reenvía comandos firmados) | todo, sólo lectura sobre trading |
 | **`execution`** | **sí, y sólo él** | **sí** | sus propios feeds + comandos firmados |
 
@@ -64,9 +64,10 @@ Vos (gesto en la UI, PC o celular)
 ## 4. El LLM
 
 - Su registro de herramientas es **de sólo lectura por construcción**: no existe ninguna
-  tool que toque órdenes. El token del `llm-gateway` no tiene el alcance `trade`.
-- Puede escribir en un espacio propio del diario ("notas del asistente": resúmenes,
-  revisiones), separado y marcado. Nunca modifica registros de trades ni tus notas.
+  tool que toque órdenes. El token de `bender-mcp` no tiene el alcance `trade`.
+- Puede escribir sólo en la **capa de IA** (notas, dibujos, niveles y propuestas; ADR-0013),
+  separada y marcada. Nunca modifica registros de trades ni tus notas o dibujos; aceptar una
+  propuesta es una acción tuya.
 - Igual en el celular: el modelo local usa el mismo token de sólo lectura.
 
 ---

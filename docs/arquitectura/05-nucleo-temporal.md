@@ -22,9 +22,13 @@ Envelope
   source         SourceId     ej. BINANCE:PERP_LINEAR:BTCUSDT:trades, USER:drawings, CLOCK
   source_seq     u64?         secuencia de la fuente, si existe
   ingest_seq     u64          secuencia propia, monótona por fuente
-  provenance     live | backfill | synthetic
-  payload        MarketEvent | UserEvent | Heartbeat | Gap
+  provenance     live | recovered | backfill | synthetic   (ADR-0011)
+  payload        MarketEvent | UserEvent | Heartbeat | Gap | GapRecovery
 ```
+
+Completitud por intervalo (`complete` | `recovered` | `incomplete`) y la consulta
+`coverage(source, rango, as_of)`: ver
+[ADR-0011](../decisiones/ADR-0011-completitud-de-datos-y-recuperacion-de-huecos.md).
 
 ## 2. Orden total
 

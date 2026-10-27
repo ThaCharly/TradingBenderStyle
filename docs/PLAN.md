@@ -4,7 +4,7 @@
 > entiende niveles y eventos, y un diario de trading con memoria y fundamento.
 > Usuario único. Sin apuro. Bien hecho.
 
-Estado: **planeación v3** (después de la [revisión arquitectónica](revision/2026-10-27-revision-arquitectonica.md)).
+Estado: **planificación cerrada**; pasa a ejecución ([TRASPASO](TRASPASO.md)). Versión del plan: **v3** (después de la [revisión arquitectónica](revision/2026-10-27-revision-arquitectonica.md)).
 Nada de código todavía.
 
 Mapa de documentos:
@@ -16,9 +16,10 @@ Mapa de documentos:
   [05 núcleo temporal](arquitectura/05-nucleo-temporal.md) ·
   [06 ejecución de futuros](arquitectura/06-ejecucion-futuros.md) ·
   [07 topología](arquitectura/07-topologia-distribuida.md) ·
-  [08 aislamiento del LLM](arquitectura/08-aislamiento-llm.md)
+  [08 aislamiento del LLM](arquitectura/08-aislamiento-llm.md) ·
+  [09 MCP de análisis](arquitectura/09-mcp-de-analisis.md)
 - Decisiones: [ADRs](decisiones/README.md)
-- Trabajo: [PROTOTIPO inicial](PROTOTIPO.md) · [ROADMAP](ROADMAP.md) (milestones e issues) · [guía para agentes](AGENTES.md) · [estrategia de ramas](RAMAS.md)
+- Trabajo: [PROTOTIPO inicial](PROTOTIPO.md) · [ROADMAP](ROADMAP.md) (milestones e issues) · [guía para agentes](AGENTES.md) · [piloto con agente local](PILOTO-AGENTE-LOCAL.md) · [estrategia de ramas](RAMAS.md) · [archivado vs respaldo](operacion/archivado-vs-respaldo.md)
 
 ---
 
@@ -90,7 +91,7 @@ Y los principios que se derivan:
  Binance · BloFin · BingX · MEXC · Bybit (spot + perps)
 ```
 
-La estación (PC con GPU) corre `worker` (backtests, entrenamiento) y el `llm-gateway`
+La estación (PC con GPU) corre `worker` (backtests, entrenamiento) y el LLM
 grande. Cada componente puede moverse de nodo por configuración
 ([doc 07](arquitectura/07-topologia-distribuida.md)).
 
@@ -391,6 +392,10 @@ capital, drawdown, evolución mensual.
 
 ### 9.2 LLM: dos niveles, mismas herramientas
 
+> Las herramientas las sirve **`bender-mcp`**, el servidor MCP de análisis, que también
+> pueden usar Claude y Codex: [09-mcp-de-analisis.md](arquitectura/09-mcp-de-analisis.md),
+> [ADR-0013](decisiones/ADR-0013-mcp-de-analisis.md).
+
 | Dónde | Modelo | Para qué |
 |---|---|---|
 | **Celular** (S25) | **4B** cuantizado, en el dispositivo | charla diaria, consultas rápidas, notas de voz al diario |
@@ -422,10 +427,10 @@ capital, drawdown, evolución mensual.
 
 | Pieza | Elección |
 |---|---|
-| Esquema de datos | IDL único (Protobuf o similar) → tipos Rust / TS / Python |
+| Esquema de datos | IDL único (Protobuf) → tipos Rust / TS |
 | Daemon: marketdata, execution, api | **Rust** |
-| Motor (features, niveles, eventos) | **Rust, una sola librería**; en vivo, replay, backtest y Python vía PyO3 |
-| Research, ML | Python: Polars, LightGBM, PyTorch |
+| Motor (features, niveles, eventos) | **Rust, una sola librería**; en vivo, replay, backtest y datasets |
+| Research, ML | **Rust** (Polars, DuckDB, statrs; GBM/candle a evaluar en M12). Sin Python ([ADR-0012](decisiones/ADR-0012-sin-python.md)); única excepción posible: afinado LoRA, se decide en M11 |
 | Clientes | TypeScript + `ChartScene` + Lightweight Charts v5; **Tauri 2** en PC y Android (mismo front; spike en M3) |
 | Transporte | Connect-RPC/gRPC sobre Tailscale, streams reanudables por cursor ([ADR-0005](decisiones/ADR-0005-topologia-distribuida.md)) |
 | LLM en celular | llama.cpp (+ evaluar QNN/NPU) en proceso aislado |
@@ -477,6 +482,8 @@ IP fija · desarrollo en la PC local · universo BTC/ETH · presupuesto de disco
 gate de paso a la mini-PC ([ADR-0010](decisiones/ADR-0010-archivado-y-paso-a-produccion-del-grabador.md))
 · rama `main` como tronco ([RAMAS.md](RAMAS.md)) · el primer entregable es el
 [prototipo P0](PROTOTIPO.md).
+· MCP de análisis: niveles de datos `mercado` para Claude/Codex y `completo` sólo para el LLM
+local ([ADR-0013](decisiones/ADR-0013-mcp-de-analisis.md)) · sin Python ([ADR-0012](decisiones/ADR-0012-sin-python.md)).
 
 ### Diferidas, con su disparador
 | Decisión | Se decide cuando… |

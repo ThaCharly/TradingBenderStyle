@@ -78,6 +78,11 @@ en replay. Si después rellenamos el hueco con datos REST, entran como datos tar
 `ts_available` posterior). Así el replay reproduce lo que el motor realmente sabía, no lo
 que sabríamos con el diario del lunes.
 
+Al reconectar, el grabador **intenta primero recuperar** lo perdido si el proveedor lo
+permite. Los datos recuperados llevan `provenance = recovered`, el `Gap` nunca se borra, y
+cada intervalo queda clasificado como `complete`, `recovered` o `incomplete`
+([ADR-0011](../decisiones/ADR-0011-completitud-de-datos-y-recuperacion-de-huecos.md)).
+
 ---
 
 ## 6. Reglas de determinismo (para el código del motor)
@@ -90,7 +95,7 @@ que sabríamos con el diario del lunes.
 - Nada de iterar mapas sin orden definido.
 - Aleatoriedad sólo con semilla registrada.
 - **Una sola implementación** del motor (librería Rust) usada en vivo, en replay, en
-  backtest y en el pipeline de entrenamiento (vía bindings a Python).
+  backtest y en el pipeline de entrenamiento (todo en Rust, ADR-0012).
 
 ---
 

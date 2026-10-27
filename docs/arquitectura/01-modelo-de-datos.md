@@ -9,7 +9,7 @@
 ## 1. Reglas generales
 
 1. **Esquema definido una sola vez.** Un IDL (Protobuf o similar) del que se generan los
-   tipos para Rust (daemon, motor), TypeScript (UI) y Python (research). Nadie escribe
+   tipos para Rust (daemon, motor, research) y TypeScript (UI). Nadie escribe
    tipos a mano en dos lenguajes.
 2. **Nada de floats para plata.** Precios, cantidades, comisiones, saldos y PnL son
    decimales de punto fijo. Los floats sólo existen dentro de features analíticas.
@@ -88,9 +88,12 @@ Una unión cerrada (`MarketEvent`):
 - `OpenInterest { qty_base }`
 - `Liquidation { side, price, qty_base }` (cuando el exchange lo publica)
 - `InstrumentStatus { status }` (pausa, deslistado, cambio de spec)
-- **`Gap { from, to, reason }`** — "se cortó la conexión, no sé qué pasó en este
+- **`Gap { gap_id, from, to, reason }`** — "se cortó la conexión, no sé qué pasó en este
   intervalo". Es un evento de primera clase: el motor tiene que comportarse igual en vivo
   y en replay frente a un hueco.
+- **`GapRecovery { gap_id, recovered_from, recovered_to, method, result }`** — resultado del
+  intento de recuperar el hueco desde el proveedor (`full` | `partial` | `none`). No borra
+  el `Gap`. Ver [ADR-0011](../decisiones/ADR-0011-completitud-de-datos-y-recuperacion-de-huecos.md).
 
 Las **velas no son eventos de mercado**: son derivadas de los trades. Las velas que
 publica el exchange se guardan sólo para validar nuestra agregación.

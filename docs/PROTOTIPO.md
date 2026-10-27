@@ -51,8 +51,9 @@ trading (ni paper), motor, estadística, LLM. Todo eso se apoya en lo que P0 val
 |---|---|---|
 | 1. Cimientos | #2, #20, #17, #18, #19, #21 | repo, CI, esquema de datos, tipos, transporte |
 | 2. Núcleo temporal | #22, #23, #24, #25, #26, #27, #28, #29, #30 | almacenamiento, reloj, velas, `as_of`, Runner, tests normativos |
-| 3. Grabador | #32 | Binance BTC/ETH grabándose |
+| 3. Grabador | #32, #156 | Binance BTC/ETH grabándose; validación contra velas oficiales |
 | 4. Gráfica | #44 (spike, puede ir en paralelo desde el paso 1), #46, #47, #48, #49, #54 | servicio de velas, escena, render, dibujo, máquina del tiempo |
+| 5. Integración | #155 | `make dev`: todo con un comando |
 
 Lo que puede ir en paralelo: el spike de gráfica (#44) arranca apenas existe el repo
 (#2), con datos sintéticos, mientras se construye el núcleo.

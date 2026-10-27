@@ -12,6 +12,9 @@
 | 0008 | Shell móvil y canal de push | reservada para el spike #45 |
 | [0009](ADR-0009-presupuesto-de-disco.md) | Presupuesto de disco ~1 TB y retención (crudo 90 días, L2 acotado) | aceptada como configuración inicial |
 | [0010](ADR-0010-archivado-y-paso-a-produccion-del-grabador.md) | Archivado comprimido de irreemplazables antes de borrar; gate para mover el grabador a la mini-PC | aceptada |
+| [0011](ADR-0011-completitud-de-datos-y-recuperacion-de-huecos.md) | Completitud por intervalo (completo / recuperado / incompleto); recuperar antes de declarar incompleto, sin ocultar huecos | aceptada |
+| [0012](ADR-0012-sin-python.md) | Sin Python: research, estadística y herramientas en Rust; LoRA se decide en M11 | aceptada |
+| [0013](ADR-0013-mcp-de-analisis.md) | Servidor MCP de análisis para Claude, Codex y el LLM local; sesiones ancladas a un instante; escritura sólo en la capa de IA | aceptada |
 
 Formato: contexto → decisión → alternativas descartadas → consecuencias. Una ADR aceptada
 no se edita para cambiar la decisión: se escribe una nueva que la reemplaza.

@@ -1,0 +1,15 @@
+[workspace]
+resolver = "3"
+members = ["crates/*", "tools/devtools"]
+
+[workspace.package]
+edition = "2024"
+rust-version = "1.97"
+license = "UNLICENSED"
+publish = false
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+
+[workspace.lints.clippy]
+all = { level = "warn", priority = -1 }
