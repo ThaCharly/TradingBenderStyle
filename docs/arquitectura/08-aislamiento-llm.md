@@ -24,22 +24,22 @@ Se aplica defensa en profundidad: si falla una capa, las demás siguen cerrando 
 
 ## Capa 2 — Herramientas
 
-Sólo lectura:
-`get_trades`, `get_trade`, `get_stats`, `get_equity_curve`, `get_account_state`,
-`get_engine_snapshot`, `get_events`, `get_levels`, `get_estimate`, `search_journal`,
-`get_flags`, `get_rules`.
+El catálogo es el de `bender-mcp`
+([09-mcp-de-analisis.md](09-mcp-de-analisis.md) §2): lectura de mercado, análisis del
+usuario, motor, estadística y, según el nivel de datos, diario y cuenta.
 
-Una sola escritura: `append_assistant_note(trade_id? | period?, text, tags[])`.
-- Append-only, en el espacio `assistant_notes`, con autor `llm`, versión del modelo y
-  la traza de herramientas que usó.
-- Límite de tamaño (default 8 KB por nota) y de tasa (default 30 notas por hora).
-- No puede editar ni borrar nada, tampoco sus propias notas.
-- No puede crear ni modificar alertas, dibujos, niveles, guardarraíles ni configuración.
+Escritura, **sólo en la capa de IA** (§4 del doc 09): `append_ai_note`, `propose_drawing`,
+`propose_level`, `propose_alert`, `propose_hypothesis`.
+- Append-only, atribuida (cliente, modelo, `as_of`, traza de herramientas).
+- Límites de tamaño (default 8 KB) y de tasa por cliente.
+- No puede editar ni borrar nada, tampoco lo propio.
+- No puede modificar tus alertas, dibujos, niveles, notas, guardarraíles ni configuración:
+  sólo proponer. Aceptar es una acción tuya.
 
 ## Capa 3 — Credenciales
 
-- El token del LLM tiene alcances `read:market`, `read:engine`, `read:account`,
-  `read:journal` y `write:assistant_notes`. Nada más.
+- El token de cada cliente tiene alcances `read:*` (según su nivel de datos) y
+  opcionalmente `write:ai_layer`. Nunca `trade:command`.
 - `execution` sólo acepta comandos **firmados por una clave de dispositivo**. El LLM no
   tiene ninguna. En el teléfono, la clave está en el Android Keystore y exige
   **biometría por operación**: aunque el LLM corra dentro de la misma app, no puede firmar
@@ -51,7 +51,7 @@ Una sola escritura: `append_assistant_note(trade_id? | period?, text, tags[])`.
 
 - `bender-mcp` sólo alcanza `query`, `journal` y la capa de IA (Tailscale ACL + firewall local).
 - La base de datos se consulta con un rol de **sólo lectura** sobre vistas específicas; el
-  rol de notas sólo puede hacer `INSERT` en `assistant_notes`.
+  rol de la capa de IA sólo puede hacer `INSERT` en sus tablas (`ai_*`).
 
 ## Capa 5 — Presentación
 

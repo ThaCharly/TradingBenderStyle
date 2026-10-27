@@ -25,7 +25,7 @@ crates/                         workspace de Rust
   bender-commands-client        cliente de comandos firmados (lo usan sólo las UIs)
   bender-api                    binario: gateway para clientes (auth, reenvío de comandos)
   bender-query                  servicio de consultas de sólo lectura
-  bender-journal                servicio de diario (incluye assistant_notes)
+  bender-journal                servicio de diario
   bender-notify                 notificaciones (push, Telegram)
   bender-mcp                    binario: servidor MCP de análisis (Claude, Codex, LLM local; ADR-0013)
   bender-research               estadística, calibración y validación (M9; ADR-0012)
