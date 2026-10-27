@@ -18,7 +18,7 @@ Mapa de documentos:
   [07 topología](arquitectura/07-topologia-distribuida.md) ·
   [08 aislamiento del LLM](arquitectura/08-aislamiento-llm.md)
 - Decisiones: [ADRs](decisiones/README.md)
-- Trabajo: [ROADMAP](ROADMAP.md) (milestones e issues) · [guía para agentes](AGENTES.md)
+- Trabajo: [PROTOTIPO inicial](PROTOTIPO.md) · [ROADMAP](ROADMAP.md) (milestones e issues) · [guía para agentes](AGENTES.md) · [estrategia de ramas](RAMAS.md)
 
 ---
 
@@ -473,20 +473,19 @@ disparador.
 
 ### Decididas
 IP fija · desarrollo en la PC local · universo BTC/ETH · presupuesto de disco y retención
-([ADR-0009](decisiones/ADR-0009-presupuesto-de-disco.md)).
-
-### Pendientes que bloquean el primer issue
-1. **Rama `main`** en GitHub como rama por defecto (hoy la rama por defecto es la de la
-   sesión de planificación). La CI de #2 la asume.
+([ADR-0009](decisiones/ADR-0009-presupuesto-de-disco.md)) · archivado de irreemplazables y
+gate de paso a la mini-PC ([ADR-0010](decisiones/ADR-0010-archivado-y-paso-a-produccion-del-grabador.md))
+· rama `main` como tronco ([RAMAS.md](RAMAS.md)) · el primer entregable es el
+[prototipo P0](PROTOTIPO.md).
 
 ### Diferidas, con su disparador
 | Decisión | Se decide cuando… |
 |---|---|
 | Definiciones de canales, rangos de área y eventos | se use la herramienta genérica (M3) y empiece M8 (#98 marcado `necesita-refinamiento`) |
 | Dónde está la GPU (PC o mini-PC) | empiece M9 o M11 (sólo cambia el perfil de despliegue) |
-| Cuándo pasa el grabador a la mini-PC | apenas exista #32; ver recomendación en ADR-0009 |
+| Cuándo pasa el grabador a la mini-PC | se pase el gate de producción #140 (ADR-0010) |
 | Shell móvil y canal de push | termine el spike #45 |
 | Confirmar Lightweight Charts | termine el spike #44 |
 | Compra de datos tradfi intradía | se cierre M9 (#133) |
 | Exchanges secundarios para operar | terminen los spikes #79–#82 |
-| VPS o disco extra | el monitoreo de disco (#43) proyecte < 90 días de espacio |
+| VPS o disco extra (y encender el archivado de L2 crudo) | el monitoreo de disco (#43) proyecte < 90 días de espacio, o se quiera conservar el L2 crudo |

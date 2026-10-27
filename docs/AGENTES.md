@@ -5,7 +5,8 @@ conversaciones previas. Antes de empezar:
 
 1. Leé el issue completo y **todos** los documentos que enlaza en "Referencias".
 2. Verificá que los issues de "Bloqueado por" estén cerrados. Si no lo están, no empieces.
-3. Trabajá en una rama `issue-<número>-<slug>` y abrí un PR que diga `Closes #<número>`.
+3. Trabajá en una rama `issue-<número>-<slug>` creada desde `main` y abrí un PR hacia `main`
+   que diga `Closes #<número>`. Detalle en [RAMAS.md](RAMAS.md).
 
 ## Reglas que no se negocian
 

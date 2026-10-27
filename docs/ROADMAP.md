@@ -45,6 +45,12 @@ graph LR
   M9 --> M14[M14 Elliott y extras]
 ```
 
+## Prototipo inicial (P0) · seguimiento #141
+
+Lo primero que se construye: grabador de Binance BTC/ETH + gráfica local con máquina del
+tiempo, en la PC. Qué incluye, qué demuestra y qué no: [PROTOTIPO.md](PROTOTIPO.md).
+Después, **P1 — grabador en producción**: #33, #42, #43, #139, #34–#37 y el gate #140.
+
 ## Por dónde empezar (sin dependencias pendientes)
 
 1. **#2** M0-01 Monorepo y CI.
@@ -99,6 +105,8 @@ graph LR
 | M2-11 | #42 Calidad de datos | #32, #39 |
 | M2-12 | #43 Operación del grabador y retención (ADR-0009) | #32 |
 | M2-13 | #138 Spike: inventario de tradfi gratuito | #33 |
+| M2-14 | #139 Archivado comprimido de datos irreemplazables | #22, #43 |
+| M2-15 | #140 Gate de producción y migración a la mini-PC | #32, #42, #43, #139 |
 
 ## M3 — Gráfica · épico #5
 

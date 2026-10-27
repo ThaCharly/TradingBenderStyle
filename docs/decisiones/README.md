@@ -10,7 +10,8 @@
 | [0006](ADR-0006-aislamiento-llm.md) | LLM sólo consulta y escribe notas propias; sin camino a ejecución | aceptada |
 | [0007](ADR-0007-almacenamiento-minimo.md) | Parquet + DuckDB + Postgres; ClickHouse diferido con criterio medible | aceptada (simplifica plan v2) |
 | 0008 | Shell móvil y canal de push | reservada para el spike #45 |
-| [0009](ADR-0009-presupuesto-de-disco.md) | Presupuesto de disco ~1 TB y retención (crudo 90 días, L2 acotado) | aceptada como default |
+| [0009](ADR-0009-presupuesto-de-disco.md) | Presupuesto de disco ~1 TB y retención (crudo 90 días, L2 acotado) | aceptada como configuración inicial |
+| [0010](ADR-0010-archivado-y-paso-a-produccion-del-grabador.md) | Archivado comprimido de irreemplazables antes de borrar; gate para mover el grabador a la mini-PC | aceptada |
 
 Formato: contexto → decisión → alternativas descartadas → consecuencias. Una ADR aceptada
 no se edita para cambiar la decisión: se escribe una nueva que la reemplaza.
