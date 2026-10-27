@@ -4,7 +4,7 @@
 > entiende niveles y eventos, y un diario de trading con memoria y fundamento.
 > Usuario único. Sin apuro. Bien hecho.
 
-Estado: **planeación v3** (después de la [revisión arquitectónica](revision/2026-10-27-revision-arquitectonica.md)).
+Estado: **planificación cerrada**; pasa a ejecución ([TRASPASO](TRASPASO.md)). Versión del plan: **v3** (después de la [revisión arquitectónica](revision/2026-10-27-revision-arquitectonica.md)).
 Nada de código todavía.
 
 Mapa de documentos:
@@ -482,6 +482,8 @@ IP fija · desarrollo en la PC local · universo BTC/ETH · presupuesto de disco
 gate de paso a la mini-PC ([ADR-0010](decisiones/ADR-0010-archivado-y-paso-a-produccion-del-grabador.md))
 · rama `main` como tronco ([RAMAS.md](RAMAS.md)) · el primer entregable es el
 [prototipo P0](PROTOTIPO.md).
+· MCP de análisis: niveles de datos `mercado` para Claude/Codex y `completo` sólo para el LLM
+local ([ADR-0013](decisiones/ADR-0013-mcp-de-analisis.md)) · sin Python ([ADR-0012](decisiones/ADR-0012-sin-python.md)).
 
 ### Diferidas, con su disparador
 | Decisión | Se decide cuando… |

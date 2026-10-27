@@ -1,6 +1,6 @@
 # ADR-0013 — Servidor MCP de análisis abierto a Claude, Codex y el LLM local
 
-- Estado: **aceptada** (el nivel de datos por defecto queda a confirmar por el usuario)
+- Estado: **aceptada**. Niveles de datos confirmados por el usuario como configuración inicial: `mercado` para clientes en la nube (Claude, Codex), `completo` sólo para el LLM local
 - Fecha: 2026-10-27
 - Amplía: [ADR-0006](ADR-0006-aislamiento-llm.md) (herramientas y permisos de escritura)
 - Diseño: [09-mcp-de-analisis.md](../arquitectura/09-mcp-de-analisis.md)

@@ -5,6 +5,7 @@ fundamento auditable y un diario de trading. Un solo usuario, local-first.
 
 - Plan y arquitectura: [docs/PLAN.md](docs/PLAN.md)
 - Primer entregable: [docs/PROTOTIPO.md](docs/PROTOTIPO.md)
+- Para empezar a trabajar: [docs/TRASPASO.md](docs/TRASPASO.md)
 - Cómo trabajar (personas y agentes): [docs/AGENTES.md](docs/AGENTES.md), [docs/RAMAS.md](docs/RAMAS.md)
 
 ## Requisitos

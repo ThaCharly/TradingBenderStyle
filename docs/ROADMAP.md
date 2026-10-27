@@ -51,7 +51,8 @@ graph LR
 
 Lo primero que se construye: grabador de Binance BTC/ETH + gráfica local con máquina del
 tiempo, en la PC. Qué incluye, qué demuestra y qué no: [PROTOTIPO.md](PROTOTIPO.md).
-Después, **P1 — grabador en producción**: #33, #42, #43, #139, #34–#37 y el gate #140.
+Después, **P1 — grabador en producción**: #33, #42, #43, #139, #34–#37 y el gate #140; y la
+**base del MCP** (#144–#147, #149).
 
 ## Por dónde empezar (sin dependencias pendientes)
 
@@ -109,6 +110,7 @@ Después, **P1 — grabador en producción**: #33, #42, #43, #139, #34–#37 y e
 | M2-13 | #138 Spike: inventario de tradfi gratuito | #33 |
 | M2-14 | #139 Archivado comprimido de datos irreemplazables | #22, #43 |
 | M2-15 | #140 Gate de producción y migración a la mini-PC | #32, #42, #43, #139 |
+| M2-16 | #156 Validación de velas propias vs oficiales de Binance (P0) | #32, #25 |
 
 ## M3 — Gráfica · épico #5
 
@@ -138,6 +140,7 @@ Después, **P1 — grabador en producción**: #33, #42, #43, #139, #34–#37 y e
 | M4-05 | #60 Leases y cola de trabajos | #21 |
 | M4-06 | #61 Sincronización de segmentos por hash | #22, #21 |
 | M4-07 | #62 Infra doméstica (UPS, watchdog, IP fija) | #59 |
+| M4-08 | #155 Lanzador `dev-all` mínimo (P0) | #32, #46, #48 |
 
 ## M5 — Alertas · épico #7
 
