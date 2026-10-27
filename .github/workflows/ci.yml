@@ -42,6 +42,10 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
+      # El test de integración de @bender/transport levanta el servidor Rust de ejemplo.
+      - name: Toolchain de rust-toolchain.toml
+        run: rustup show active-toolchain || rustup toolchain install
+      - uses: Swatinem/rust-cache@v2
       - run: pnpm install --frozen-lockfile
       - run: make ts
 

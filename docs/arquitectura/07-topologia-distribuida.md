@@ -37,6 +37,22 @@ cambiando sólo el perfil del nodo.
    producen marcas de tiempo autoritativas. Los comandos firmados llevan la hora del
    dispositivo con una tolerancia (default ±30 s) para evitar replays.
 
+### Implementación (`bender-transport`, #21)
+
+- Un servicio se define en `schema/` y se genera con `make gen` (tonic en Rust,
+  Connect-ES en TS). Los clientes Rust usan siempre `bender_transport::Channel`:
+  `Channel::in_process(rutas, …)` si el servicio está en el mismo binario, o
+  `Channel::connect(url, …)` por red. El código del cliente es el mismo en los dos casos.
+- El servidor de red (`server::serve`) atiende gRPC sobre HTTP/2 para Rust y gRPC-Web
+  sobre HTTP/1.1 para el front (`@bender/transport`), con TLS opcional.
+- Versión: el cliente la manda en el metadato `bender-protocol-version` ("MAYOR.MENOR") y
+  el servicio la devuelve en cada respuesta. Si son incompatibles, la respuesta es
+  `FAILED_PRECONDITION` con un detalle `bender.v1.VersionMismatch`, que Rust convierte en
+  `TransportError::IncompatibleVersion` y TS en `IncompatibleVersionError`.
+- Reanudación: `resume::resumable` (Rust) y `resumeStream` (TS) reabren el stream con el
+  último `ingest_seq` recibido y descartan duplicados. El servidor emite desde
+  `after + 1`.
+
 ## 3. Red y permisos (Tailscale ACL)
 
 ```

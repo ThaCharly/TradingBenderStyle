@@ -25,7 +25,7 @@ buf:
 	pnpm buf:breaking
 	cargo run -q -p bender-devtools --bin check-schema
 
-GENERATED := crates/bender-types/src/gen apps/client/packages/types/src/gen
+GENERATED := crates/bender-types/src/gen crates/bender-transport/src/gen apps/client/packages/types/src/gen
 
 # Tipos Rust (prost, vía tools/devtools) y TypeScript (buf + protoc-gen-es) desde schema/.
 gen:

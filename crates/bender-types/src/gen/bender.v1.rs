@@ -248,7 +248,7 @@ impl MarketDataKind {
         }
     }
 }
-/// "Se cortó la fuente y no sé qué pasó en [from_ts, to_ts)". Se emite al detectarlo, con
+/// "Se cortó la fuente y no sé qué pasó en \[from_ts, to_ts)". Se emite al detectarlo, con
 /// `ts_available` del momento de la detección. La recuperación nunca lo borra.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct Gap {
@@ -285,7 +285,7 @@ pub struct GapRecovery {
     #[prost(enumeration = "RecoveryResult", tag = "5")]
     pub result: i32,
 }
-/// Intervalo [from_ts, to_ts) de una fuente con su completitud; lo devuelve
+/// Intervalo \[from_ts, to_ts) de una fuente con su completitud; lo devuelve
 /// `coverage(source, rango, as_of)`.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct CoverageInterval {
@@ -989,6 +989,32 @@ impl Provenance {
             _ => None,
         }
     }
+}
+/// Versionado de protocolo entre componentes (doc 07 §2.6). Cada servicio publica su
+/// versión; el cliente manda la suya en el metadato `bender-protocol-version`
+/// ("MAYOR.MENOR") de cada llamada. Son compatibles si coincide la mayor y las menores
+/// difieren a lo sumo en 1.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ProtocolVersion {
+    /// \[requerido\]
+    #[prost(uint32, tag = "1")]
+    pub major: u32,
+    /// \[requerido\]
+    #[prost(uint32, tag = "2")]
+    pub minor: u32,
+}
+/// Detalle del error `FAILED_PRECONDITION` que devuelve un servicio cuando la versión del
+/// cliente es incompatible. Viaja en los detalles del status (`grpc-status-details-bin`).
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct VersionMismatch {
+    /// Nombre completo del servicio, p. ej. "bender.example.v1.ExampleService". \[requerido\]
+    #[prost(string, tag = "1")]
+    pub service: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "2")]
+    pub server: ::core::option::Option<ProtocolVersion>,
+    /// Ausente si el cliente no mandó versión.
+    #[prost(message, optional, tag = "3")]
+    pub client: ::core::option::Option<ProtocolVersion>,
 }
 /// Identifica la versión del esquema que produce o consume un componente.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
