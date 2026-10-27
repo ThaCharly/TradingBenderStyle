@@ -33,7 +33,7 @@ Requisitos y detalles en el [README](../README.md) y en
   `bender_types::Decimal`.
 - **Pilar 3**: sólo `bender-execution` puede depender de los crates de venues con
   capacidades de trading privado o leer claves. El test de arquitectura lo verifica.
-- **ADR-0006**: `bender-llm-gateway` nunca depende de `bender-commands-client`.
+- **ADR-0006 y ADR-0013**: `bender-mcp` nunca depende de `bender-commands-client` ni de `bender-execution`.
 - Si el issue contradice un documento de `docs/arquitectura`, **no improvises**: comentá
   en el issue y pará.
 - Si cambiás un comportamiento especificado, actualizá el documento en el mismo PR.

@@ -3,6 +3,11 @@
 > El LLM tiene **sólo herramientas de consulta** y un único permiso de escritura: agregar
 > notas propias al diario. **No existe ningún camino**, directo o indirecto, desde el LLM
 > hacia `execution`. Decisión: [ADR-0006](../decisiones/ADR-0006-aislamiento-llm.md).
+>
+> **Ampliado por [ADR-0013](../decisiones/ADR-0013-mcp-de-analisis.md)**: el servidor de
+> herramientas es `bender-mcp` y también lo usan Claude y Codex. La escritura se amplía a la
+> capa de IA (notas, dibujos, niveles, propuestas); ver
+> [09-mcp-de-analisis.md](09-mcp-de-analisis.md). Todo lo que sigue aplica igual.
 
 Se aplica defensa en profundidad: si falla una capa, las demás siguen cerrando el camino.
 
@@ -10,7 +15,7 @@ Se aplica defensa en profundidad: si falla una capa, las demás siguen cerrando 
 
 ## Capa 1 — Código: no existe el cliente de ejecución
 
-- El crate `bender-llm-gateway` y el módulo LLM del cliente Android **no dependen** del
+- El crate `bender-mcp` y el módulo LLM del cliente Android **no dependen** del
   cliente de comandos (`bender-commands-client`). Un test de arquitectura en CI recorre el
   grafo de dependencias (`cargo metadata` y el equivalente en TS) y falla si aparece esa
   arista.
@@ -44,7 +49,7 @@ Una sola escritura: `append_assistant_note(trade_id? | period?, text, tags[])`.
 
 ## Capa 4 — Red
 
-- `llm-gateway` sólo alcanza `query` y `journal-notes` (Tailscale ACL + firewall local).
+- `bender-mcp` sólo alcanza `query`, `journal` y la capa de IA (Tailscale ACL + firewall local).
 - La base de datos se consulta con un rol de **sólo lectura** sobre vistas específicas; el
   rol de notas sólo puede hacer `INSERT` en `assistant_notes`.
 

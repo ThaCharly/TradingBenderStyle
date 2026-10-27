@@ -1,6 +1,6 @@
 # ADR-0006 — El LLM sólo consulta y escribe notas propias; ningún camino a ejecución
 
-- Estado: **aceptada**
+- Estado: **aceptada**; ampliada por [ADR-0013](ADR-0013-mcp-de-analisis.md) (servidor MCP para clientes externos y escritura en la capa de IA)
 - Fecha: 2026-10-27
 - Diseño: [08-aislamiento-llm.md](../arquitectura/08-aislamiento-llm.md)
 

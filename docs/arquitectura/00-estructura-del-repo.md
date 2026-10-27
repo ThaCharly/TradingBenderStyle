@@ -27,7 +27,7 @@ crates/                         workspace de Rust
   bender-query                  servicio de consultas de sólo lectura
   bender-journal                servicio de diario (incluye assistant_notes)
   bender-notify                 notificaciones (push, Telegram)
-  bender-llm-gateway            binario: servidor de herramientas del LLM
+  bender-mcp                    binario: servidor MCP de análisis (Claude, Codex, LLM local; ADR-0013)
   bender-research               estadística, calibración y validación (M9; ADR-0012)
   bender-lab                    CLI de research: datasets, reportes HTML/JSON
 apps/client/                    front TypeScript (Vite, pnpm)

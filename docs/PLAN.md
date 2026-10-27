@@ -16,7 +16,8 @@ Mapa de documentos:
   [05 núcleo temporal](arquitectura/05-nucleo-temporal.md) ·
   [06 ejecución de futuros](arquitectura/06-ejecucion-futuros.md) ·
   [07 topología](arquitectura/07-topologia-distribuida.md) ·
-  [08 aislamiento del LLM](arquitectura/08-aislamiento-llm.md)
+  [08 aislamiento del LLM](arquitectura/08-aislamiento-llm.md) ·
+  [09 MCP de análisis](arquitectura/09-mcp-de-analisis.md)
 - Decisiones: [ADRs](decisiones/README.md)
 - Trabajo: [PROTOTIPO inicial](PROTOTIPO.md) · [ROADMAP](ROADMAP.md) (milestones e issues) · [guía para agentes](AGENTES.md) · [piloto con agente local](PILOTO-AGENTE-LOCAL.md) · [estrategia de ramas](RAMAS.md) · [archivado vs respaldo](operacion/archivado-vs-respaldo.md)
 
@@ -90,7 +91,7 @@ Y los principios que se derivan:
  Binance · BloFin · BingX · MEXC · Bybit (spot + perps)
 ```
 
-La estación (PC con GPU) corre `worker` (backtests, entrenamiento) y el `llm-gateway`
+La estación (PC con GPU) corre `worker` (backtests, entrenamiento) y el LLM
 grande. Cada componente puede moverse de nodo por configuración
 ([doc 07](arquitectura/07-topologia-distribuida.md)).
 
@@ -390,6 +391,10 @@ entrada sin evento del motor). Estadísticas por setup/hora/activo/exchange, cur
 capital, drawdown, evolución mensual.
 
 ### 9.2 LLM: dos niveles, mismas herramientas
+
+> Las herramientas las sirve **`bender-mcp`**, el servidor MCP de análisis, que también
+> pueden usar Claude y Codex: [09-mcp-de-analisis.md](arquitectura/09-mcp-de-analisis.md),
+> [ADR-0013](decisiones/ADR-0013-mcp-de-analisis.md).
 
 | Dónde | Modelo | Para qué |
 |---|---|---|

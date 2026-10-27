@@ -10,10 +10,10 @@
 | Nodo | Rol | Componentes |
 |---|---|---|
 | **Servidor** (mini-PC en casa, 24/7) | núcleo con estado | `recorder`, `store`, `runner` en vivo (motor + alertas), **`execution`** (sólo acá), `api`, `query`, `journal`, `notify` |
-| **Estación** (PC, con la RTX 5050) | cliente + cómputo pesado | cliente de escritorio, `worker` (backtests, datasets, entrenamiento), `llm-gateway` grande (9B / MoE 35B) |
+| **Estación** (PC, con la RTX 5050) | cliente + cómputo pesado | cliente de escritorio, `worker` (backtests, datasets, entrenamiento), `bender-mcp` y el LLM grande (9B / MoE 35B) |
 | **Teléfono** (S25, Android) | cliente + LLM local | cliente Android, LLM 4B en el dispositivo, clave de firma en Keystore |
 
-Si la GPU está en el servidor y no en la PC, `worker` y `llm-gateway` se mueven ahí
+Si la GPU está en el servidor y no en la PC, `worker` y el LLM grande se mueven ahí
 cambiando sólo el perfil del nodo.
 
 ## 2. Reglas
@@ -42,8 +42,8 @@ cambiando sólo el perfil del nodo.
 ```
 teléfono, PC  ──► api (443)            sí
 teléfono, PC  ──► query (lectura)       sí (vía api)
-llm-gateway   ──► query, journal-notes  sí
-llm-gateway   ──► api:/commands         NO
+bender-mcp    ──► query, journal, capa IA sí
+bender-mcp    ──► api:/commands         NO
 cualquiera    ──► execution             NO (sólo api, dentro del servidor)
 worker        ──► store (lectura), cola sí
 execution     ──► exchanges (salida)    sí, por IP fija o VPS de salida
