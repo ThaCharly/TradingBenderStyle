@@ -137,3 +137,15 @@ impl CoverageProjection {
         out
     }
 }
+
+// ---------------------------------------------------------------------------------------
+// Serialización canónica (checkpoints).
+
+crate::checkpoint_struct!(GapRecord {
+    source,
+    from,
+    to,
+    known_at,
+    recovered
+});
+crate::checkpoint_struct!(CoverageProjection { gaps });

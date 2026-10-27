@@ -16,3 +16,11 @@ all = { level = "warn", priority = -1 }
 # Pilar 2: sólo tiene efecto en los crates con clippy.toml (ver tools/arch-tests). `forbid`
 # impide desactivarlo con #[allow].
 disallowed_methods = "forbid"
+
+# El núcleo se optimiza también en los tests: los normativos replayan cientos de miles de
+# eventos y en debug tardan decenas de segundos.
+[profile.dev.package.bender-kernel]
+opt-level = 2
+
+[profile.dev.package.bender-types]
+opt-level = 2

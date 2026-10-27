@@ -160,3 +160,56 @@ impl<T> KernelClock<T> {
         Ok(())
     }
 }
+
+// ---------------------------------------------------------------------------------------
+// Serialización canónica (checkpoints).
+
+use crate::canonical::{CheckpointError, Checkpointable, Decoder, Encoder};
+
+impl Checkpointable for TimerId {
+    fn encode(&self, e: &mut Encoder) {
+        e.put(&self.0);
+    }
+    fn decode(d: &mut Decoder<'_>) -> Result<Self, CheckpointError> {
+        Ok(Self(d.get()?))
+    }
+}
+
+impl Checkpointable for SourceOrder {
+    fn encode(&self, e: &mut Encoder) {
+        e.put(&self.rank).put(&self.key);
+    }
+    fn decode(d: &mut Decoder<'_>) -> Result<Self, CheckpointError> {
+        Ok(Self {
+            rank: d.get()?,
+            key: d.get()?,
+        })
+    }
+}
+
+crate::checkpoint_struct!(LastKey {
+    ts_available,
+    source_seq,
+    ingest_seq,
+    source
+});
+
+impl<T: Checkpointable> Checkpointable for KernelClock<T> {
+    fn encode(&self, e: &mut Encoder) {
+        e.put(&self.last).put(&self.timers).put(&self.next_id);
+    }
+    fn decode(d: &mut Decoder<'_>) -> Result<Self, CheckpointError> {
+        Ok(Self {
+            last: d.get()?,
+            timers: d.get()?,
+            next_id: d.get()?,
+        })
+    }
+}
+
+impl Checkpointable for () {
+    fn encode(&self, _: &mut Encoder) {}
+    fn decode(_: &mut Decoder<'_>) -> Result<Self, CheckpointError> {
+        Ok(())
+    }
+}

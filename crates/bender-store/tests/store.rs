@@ -206,3 +206,25 @@ fn raw_zone_roundtrip_and_partitioning() {
     assert_eq!(store.read_raw(&key, base, base + day).unwrap(), records);
     std::fs::remove_dir_all(&root).unwrap();
 }
+
+#[test]
+fn checkpoints_are_stored_by_name_and_day() {
+    let root = temp_root("checkpoint");
+    let store = Store::open(&root).unwrap();
+    let day = 1_793_145_600_000_000_000i64; // 2026-10-28 00:00 UTC
+    assert_eq!(store.get_checkpoint("kernel", day).unwrap(), None);
+    let path = store.put_checkpoint("kernel", day, b"estado").unwrap();
+    assert!(path.ends_with("checkpoints/kernel/2026-10-28.bin"));
+    store
+        .put_checkpoint("kernel", day, b"estado nuevo")
+        .unwrap();
+    assert_eq!(
+        store.get_checkpoint("kernel", day).unwrap().as_deref(),
+        Some(&b"estado nuevo"[..])
+    );
+    assert_eq!(store.get_checkpoint("otro", day).unwrap(), None);
+    // Los checkpoints no son segmentos: Store::open no los toca.
+    let store = Store::open(&root).unwrap();
+    assert!(store.get_checkpoint("kernel", day).unwrap().is_some());
+    std::fs::remove_dir_all(&root).unwrap();
+}

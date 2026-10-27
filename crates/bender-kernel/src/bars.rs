@@ -235,6 +235,23 @@ impl Bar {
     }
 }
 
+/// Extrae el trade de un `Envelope` (error si no es un trade o le falta precio o
+/// cantidad).
+pub fn trade_tick(env: &proto::Envelope) -> Result<TradeTick, BarError> {
+    let Some(envelope::Payload::Market(proto::MarketEvent {
+        event: Some(market_event::Event::Trade(t)),
+    })) = &env.payload
+    else {
+        return Err(BarError::InvalidTrade);
+    };
+    Ok(TradeTick {
+        ts_event: env.ts_event,
+        price: t.price.ok_or(BarError::InvalidTrade)?.try_into()?,
+        qty_base: t.qty_base.ok_or(BarError::InvalidTrade)?.try_into()?,
+        aggressor: proto::Side::try_from(t.aggressor_side).unwrap_or(proto::Side::Unspecified),
+    })
+}
+
 /// Qué pasó con una vela.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum BarEventKind {
@@ -384,15 +401,9 @@ impl BarAggregator {
     ) -> Result<(), BarError> {
         match &env.payload {
             Some(envelope::Payload::Market(proto::MarketEvent {
-                event: Some(market_event::Event::Trade(t)),
+                event: Some(market_event::Event::Trade(_)),
             })) => {
-                let tick = TradeTick {
-                    ts_event: env.ts_event,
-                    price: t.price.ok_or(BarError::InvalidTrade)?.try_into()?,
-                    qty_base: t.qty_base.ok_or(BarError::InvalidTrade)?.try_into()?,
-                    aggressor: proto::Side::try_from(t.aggressor_side)
-                        .unwrap_or(proto::Side::Unspecified),
-                };
+                let tick = trade_tick(env)?;
                 self.on_trade(&tick, env.ts_available, out)
             }
             Some(envelope::Payload::Heartbeat(_)) => {
@@ -521,5 +532,110 @@ impl BarAggregator {
             }
         }
         self.next_close = next_close;
+    }
+}
+
+// ---------------------------------------------------------------------------------------
+// Serialización canónica (checkpoints).
+
+use crate::canonical::{CheckpointError, Checkpointable, Decoder, Encoder};
+
+impl Checkpointable for Timeframe {
+    fn encode(&self, e: &mut Encoder) {
+        match *self {
+            Self::Seconds(n) => e.put(&0u8).put(&n),
+            Self::Week => e.put(&1u8).put(&0u32),
+            Self::Months(n) => e.put(&2u8).put(&n),
+            Self::Year => e.put(&3u8).put(&0u32),
+        };
+    }
+    fn decode(d: &mut Decoder<'_>) -> Result<Self, CheckpointError> {
+        let tag: u8 = d.get()?;
+        let n: u32 = d.get()?;
+        match tag {
+            0 if n > 0 => Ok(Self::Seconds(n)),
+            1 => Ok(Self::Week),
+            2 if n > 0 && 12 % n == 0 => Ok(Self::Months(n)),
+            3 => Ok(Self::Year),
+            _ => Err(CheckpointError::Invalid(format!("Timeframe {tag}/{n}"))),
+        }
+    }
+}
+
+impl Checkpointable for BarState {
+    fn encode(&self, e: &mut Encoder) {
+        e.put(&u8::from(*self == Self::Closed));
+    }
+    fn decode(d: &mut Decoder<'_>) -> Result<Self, CheckpointError> {
+        Ok(if d.get::<bool>()? {
+            Self::Closed
+        } else {
+            Self::Forming
+        })
+    }
+}
+
+crate::checkpoint_struct!(Bar {
+    timeframe,
+    start,
+    end,
+    open,
+    high,
+    low,
+    close,
+    volume_base,
+    volume_quote,
+    buy_volume_base,
+    sell_volume_base,
+    trade_count,
+    first_ts_event,
+    last_ts_event,
+    revision,
+    state,
+});
+
+crate::checkpoint_struct!(BarConfig {
+    lateness_ns,
+    revision_horizon_ns
+});
+
+impl Checkpointable for BarAggregator {
+    fn encode(&self, e: &mut Encoder) {
+        e.put(&self.source.to_string()).put(&self.config);
+        e.put(&(self.tfs.len() as u64));
+        for s in &self.tfs {
+            e.put(&s.tf).put(&s.forming).put(&s.closed);
+        }
+        e.put(&self.max_ts_event)
+            .put(&self.last_heartbeat)
+            .put(&self.late_dropped);
+    }
+    fn decode(d: &mut Decoder<'_>) -> Result<Self, CheckpointError> {
+        let source: String = d.get()?;
+        let config = d.get()?;
+        let n: u64 = d.get()?;
+        let mut tfs = Vec::new();
+        for _ in 0..n {
+            tfs.push(TfState {
+                tf: d.get()?,
+                last_bucket: (0, 0),
+                forming: d.get()?,
+                closed: d.get()?,
+            });
+        }
+        let next_close = tfs
+            .iter()
+            .filter_map(|s| s.forming.values().next().map(|b| b.end))
+            .min()
+            .unwrap_or(i64::MAX);
+        Ok(Self {
+            source: source.into(),
+            config,
+            tfs,
+            max_ts_event: d.get()?,
+            last_heartbeat: d.get()?,
+            late_dropped: d.get()?,
+            next_close,
+        })
     }
 }
