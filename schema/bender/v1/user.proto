@@ -2,9 +2,68 @@ syntax = "proto3";
 
 package bender.v1;
 
-// Acción del usuario: dibujos, niveles, alertas, configuración (doc 05 §7).
+// Acción del usuario: dibujos, niveles, alertas, configuración (doc 05 §7). Entra al log
+// con `ts_available` = recepción en el servidor, nunca la hora del cliente.
 //
-// Sólo se reserva el tipo para que el sobre quede completo. Las variantes
-// (`DrawingUpserted`, `DrawingDeleted`, …) llegan con #27 (M1-06); agregarlas no rompe
-// compatibilidad.
-message UserEvent {}
+// El contenido de cada objeto es un payload opaco con versión propia: este esquema fija
+// la identidad y el ciclo de vida; el formato de cada tipo lo define su dueño (p. ej. los
+// dibujos, #49). Un payload de versión desconocida se conserva tal cual.
+message UserEvent {
+  // Quién lo hizo: "user" o "ai:<cliente>" para la capa de IA (doc 09). Ausente = "user".
+  optional string author = 1;
+
+  oneof event {
+    DrawingUpserted drawing_upserted = 10;
+    DrawingDeleted drawing_deleted = 11;
+    LevelMarked level_marked = 12;
+    AlertDefined alert_defined = 13;
+    AlertRemoved alert_removed = 14;
+    ConfigChanged config_changed = 15;
+  }
+}
+
+// Contenido opaco de un objeto del usuario, versionado por tipo.
+message OpaquePayload {
+  // Versión del formato del payload para su tipo. [requerido]
+  uint32 version = 1;
+  // [requerido]
+  bytes data = 2;
+}
+
+// Crea o reemplaza un dibujo.
+message DrawingUpserted {
+  // [requerido]
+  string drawing_id = 1;
+  OpaquePayload payload = 2;
+}
+
+message DrawingDeleted {
+  // [requerido]
+  string drawing_id = 1;
+}
+
+// Marca o actualiza un nivel.
+message LevelMarked {
+  // [requerido]
+  string level_id = 1;
+  OpaquePayload payload = 2;
+}
+
+// Crea o reemplaza una alerta.
+message AlertDefined {
+  // [requerido]
+  string alert_id = 1;
+  OpaquePayload payload = 2;
+}
+
+message AlertRemoved {
+  // [requerido]
+  string alert_id = 1;
+}
+
+// Cambia un valor de configuración.
+message ConfigChanged {
+  // Clave, p. ej. "chart.theme". [requerido]
+  string key = 1;
+  OpaquePayload payload = 2;
+}

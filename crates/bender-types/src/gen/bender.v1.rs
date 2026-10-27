@@ -897,13 +897,96 @@ impl BookSide {
         }
     }
 }
-/// Acción del usuario: dibujos, niveles, alertas, configuración (doc 05 §7).
+/// Acción del usuario: dibujos, niveles, alertas, configuración (doc 05 §7). Entra al log
+/// con `ts_available` = recepción en el servidor, nunca la hora del cliente.
 ///
-/// Sólo se reserva el tipo para que el sobre quede completo. Las variantes
-/// (`DrawingUpserted`, `DrawingDeleted`, …) llegan con #27 (M1-06); agregarlas no rompe
-/// compatibilidad.
-#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct UserEvent {}
+/// El contenido de cada objeto es un payload opaco con versión propia: este esquema fija
+/// la identidad y el ciclo de vida; el formato de cada tipo lo define su dueño (p. ej. los
+/// dibujos, #49). Un payload de versión desconocida se conserva tal cual.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct UserEvent {
+    /// Quién lo hizo: "user" o "ai:<cliente>" para la capa de IA (doc 09). Ausente = "user".
+    #[prost(string, optional, tag = "1")]
+    pub author: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(oneof = "user_event::Event", tags = "10, 11, 12, 13, 14, 15")]
+    pub event: ::core::option::Option<user_event::Event>,
+}
+/// Nested message and enum types in `UserEvent`.
+pub mod user_event {
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
+    pub enum Event {
+        #[prost(message, tag = "10")]
+        DrawingUpserted(super::DrawingUpserted),
+        #[prost(message, tag = "11")]
+        DrawingDeleted(super::DrawingDeleted),
+        #[prost(message, tag = "12")]
+        LevelMarked(super::LevelMarked),
+        #[prost(message, tag = "13")]
+        AlertDefined(super::AlertDefined),
+        #[prost(message, tag = "14")]
+        AlertRemoved(super::AlertRemoved),
+        #[prost(message, tag = "15")]
+        ConfigChanged(super::ConfigChanged),
+    }
+}
+/// Contenido opaco de un objeto del usuario, versionado por tipo.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct OpaquePayload {
+    /// Versión del formato del payload para su tipo. \[requerido\]
+    #[prost(uint32, tag = "1")]
+    pub version: u32,
+    /// \[requerido\]
+    #[prost(bytes = "vec", tag = "2")]
+    pub data: ::prost::alloc::vec::Vec<u8>,
+}
+/// Crea o reemplaza un dibujo.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct DrawingUpserted {
+    /// \[requerido\]
+    #[prost(string, tag = "1")]
+    pub drawing_id: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "2")]
+    pub payload: ::core::option::Option<OpaquePayload>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct DrawingDeleted {
+    /// \[requerido\]
+    #[prost(string, tag = "1")]
+    pub drawing_id: ::prost::alloc::string::String,
+}
+/// Marca o actualiza un nivel.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LevelMarked {
+    /// \[requerido\]
+    #[prost(string, tag = "1")]
+    pub level_id: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "2")]
+    pub payload: ::core::option::Option<OpaquePayload>,
+}
+/// Crea o reemplaza una alerta.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AlertDefined {
+    /// \[requerido\]
+    #[prost(string, tag = "1")]
+    pub alert_id: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "2")]
+    pub payload: ::core::option::Option<OpaquePayload>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AlertRemoved {
+    /// \[requerido\]
+    #[prost(string, tag = "1")]
+    pub alert_id: ::prost::alloc::string::String,
+}
+/// Cambia un valor de configuración.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ConfigChanged {
+    /// Clave, p. ej. "chart.theme". \[requerido\]
+    #[prost(string, tag = "1")]
+    pub key: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "2")]
+    pub payload: ::core::option::Option<OpaquePayload>,
+}
 /// Sobre de todo evento que entra al núcleo (doc 05 §1). Orden total:
 /// K = (ts_available, source_rank(source), source_seq, ingest_seq) (doc 05 §2).
 #[derive(Clone, PartialEq, ::prost::Message)]

@@ -11,6 +11,8 @@ pub mod heartbeat;
 pub mod merge;
 pub mod order;
 pub mod spec;
+pub mod user;
+pub mod versioned;
 
 pub use bars::{
     Bar, BarAggregator, BarConfig, BarError, BarEvent, BarEventKind, BarState, Timeframe, TradeTick,
@@ -25,3 +27,7 @@ pub use heartbeat::{DEFAULT_GRID_NS, synthetic_heartbeats};
 pub use merge::{Merge, MergeError};
 pub use order::{Ordered, SourceOrder, SourceRankTable, UnknownSource, compare};
 pub use spec::{SpecError, SpecHistory};
+pub use user::{
+    KnownVersions, UnknownPayload, UserObject, UserObjectKind, UserProjection, user_envelope,
+};
+pub use versioned::{StaleUpdate, VersionedStore};
