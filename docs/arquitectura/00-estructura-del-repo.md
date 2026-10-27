@@ -28,14 +28,15 @@ crates/                         workspace de Rust
   bender-journal                servicio de diario (incluye assistant_notes)
   bender-notify                 notificaciones (push, Telegram)
   bender-llm-gateway            binario: servidor de herramientas del LLM
-  bender-py                     bindings PyO3 del kernel/engine/runner
-python/                         proyecto uv; paquete en python/src/bender_research
+  bender-research               estadística, calibración y validación (M9; ADR-0012)
+  bender-lab                    CLI de research: datasets, reportes HTML/JSON
 apps/client/                    front TypeScript (Vite, pnpm)
   packages/chart-scene          modelo de escena (ADR-0001)
   packages/render-lwc           adaptador Lightweight Charts
   packages/ui                   componentes (ticket, diario, auditoría…)
 apps/shell/                     Tauri 2 (escritorio + Android)
 deploy/profiles/                perfiles de nodo (server, workstation, phone, dev-all)
+tools/devtools/                 herramientas del repo (check-docs-links, …)
 tools/arch-tests/               tests de arquitectura (grafo de dependencias, lints)
 docs/                           plan, arquitectura, ADRs, roadmap
 ```
@@ -47,12 +48,12 @@ Todos los chequeos se corren con `make` desde la raíz; son los mismos que la CI
 
 | Área | Herramientas | Target | Qué corre |
 |---|---|---|---|
-| Docs | Python stdlib | `make docs` | `tools/check_docs_links.py` (enlaces internos) |
+| Docs | Rust (`tools/devtools`) | `make docs` | `check-docs-links` (enlaces internos) |
 | Rust | toolchain fijada en `rust-toolchain.toml`, clippy, rustfmt | `make rust` | `cargo fmt --check`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo test --workspace` |
 | TypeScript | pnpm (workspace en la raíz), TypeScript 6.0, Vite, Vitest, ESLint + typescript-eslint | `make ts` | `pnpm -r lint` (incluye `tsc --noEmit`), `pnpm -r test` |
-| Python | uv (proyecto en `python/`), ruff, pytest | `make python` | `ruff check`, `ruff format --check`, `pytest` |
 | Protobuf | buf (dependencia de pnpm; `buf.yaml` en la raíz, módulo `schema/`) | `make buf` | `buf lint` (el chequeo de cambios incompatibles contra `main` lo agrega #17) |
 
 Notas:
+- Sin Python ([ADR-0012](../decisiones/ADR-0012-sin-python.md)).
 - TypeScript está fijado en `~6.0` porque typescript-eslint todavía no soporta la 7.
 - Playwright se agrega cuando haga falta el primer test e2e (#48).

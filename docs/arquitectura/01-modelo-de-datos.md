@@ -9,7 +9,7 @@
 ## 1. Reglas generales
 
 1. **Esquema definido una sola vez.** Un IDL (Protobuf o similar) del que se generan los
-   tipos para Rust (daemon, motor), TypeScript (UI) y Python (research). Nadie escribe
+   tipos para Rust (daemon, motor, research) y TypeScript (UI). Nadie escribe
    tipos a mano en dos lenguajes.
 2. **Nada de floats para plata.** Precios, cantidades, comisiones, saldos y PnL son
    decimales de punto fijo. Los floats sólo existen dentro de features analíticas.

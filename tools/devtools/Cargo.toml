@@ -1,0 +1,11 @@
+[package]
+name = "bender-devtools"
+version = "0.0.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+description = "Herramientas de desarrollo del repo (chequeos de documentación, etc.)."
+
+[lints]
+workspace = true

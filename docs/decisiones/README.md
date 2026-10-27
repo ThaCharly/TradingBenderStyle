@@ -13,6 +13,7 @@
 | [0009](ADR-0009-presupuesto-de-disco.md) | Presupuesto de disco ~1 TB y retención (crudo 90 días, L2 acotado) | aceptada como configuración inicial |
 | [0010](ADR-0010-archivado-y-paso-a-produccion-del-grabador.md) | Archivado comprimido de irreemplazables antes de borrar; gate para mover el grabador a la mini-PC | aceptada |
 | [0011](ADR-0011-completitud-de-datos-y-recuperacion-de-huecos.md) | Completitud por intervalo (completo / recuperado / incompleto); recuperar antes de declarar incompleto, sin ocultar huecos | aceptada |
+| [0012](ADR-0012-sin-python.md) | Sin Python: research, estadística y herramientas en Rust; LoRA se decide en M11 | aceptada |
 
 Formato: contexto → decisión → alternativas descartadas → consecuencias. Una ADR aceptada
 no se edita para cambiar la decisión: se escribe una nueva que la reemplaza.

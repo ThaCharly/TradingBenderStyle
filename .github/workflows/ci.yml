@@ -18,9 +18,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
+      - name: Toolchain de rust-toolchain.toml
+        run: rustup show active-toolchain || rustup toolchain install
+      - uses: Swatinem/rust-cache@v2
       - name: Enlaces internos de la documentación
         run: make docs
 
@@ -44,14 +44,6 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: make ts
-
-  python:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v6
-      - run: cd python && uv sync --locked
-      - run: make python
 
   buf:
     runs-on: ubuntu-latest

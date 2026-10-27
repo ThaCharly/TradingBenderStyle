@@ -26,7 +26,7 @@ Trunk-based, un solo usuario, muchos agentes.
 ## Protección de `main` (configurar en GitHub → Settings → Branches)
 
 - Requerir PR antes de mergear.
-- Requerir que pasen los checks de CI: `docs`, `rust`, `ts`, `python` y `buf` (workflow
+- Requerir que pasen los checks de CI: `docs`, `rust`, `ts` y `buf` (workflow
   `ci`).
 - Requerir que la rama esté al día con `main`.
 - Prohibir force-push y borrado.

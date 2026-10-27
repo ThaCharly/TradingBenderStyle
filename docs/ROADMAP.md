@@ -86,7 +86,7 @@ Después, **P1 — grabador en producción**: #33, #42, #43, #139, #34–#37 y e
 | M1-07 | #28 Checkpoints y manifiestos | #22, #25, #27 |
 | M1-08 | #29 Runner (live/replay/backtest/dataset) | #28 |
 | M1-09 | #30 Tests normativos y test dorado | #29, #26 |
-| M1-10 | #31 Bindings Python | #29 |
+| M1-10 | ~~#31 Bindings Python~~ cancelado (ADR-0012) | — |
 
 ## M2 — Datos · épico #4
 
@@ -205,7 +205,7 @@ Después, **P1 — grabador en producción**: #33, #42, #43, #139, #34–#37 y e
 |---|---|---|
 | M9-01 | #105 Etiquetador de tres resultados | #101, #29 |
 | M9-02 | #106 Registro de hipótesis | #2 |
-| M9-03 | #107 Dataset histórico de eventos | #105, #40, #31 |
+| M9-03 | #107 Dataset histórico de eventos | #105, #40 |
 | M9-04 | #108 Modelos base B0–B4 | #107 |
 | M9-05 | #109 Walk-forward, caja fuerte, N efectivo | #107 |
 | M9-06 | #110 Métricas de calibración y discriminación | #109 |

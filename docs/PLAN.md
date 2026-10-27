@@ -422,10 +422,10 @@ capital, drawdown, evolución mensual.
 
 | Pieza | Elección |
 |---|---|
-| Esquema de datos | IDL único (Protobuf o similar) → tipos Rust / TS / Python |
+| Esquema de datos | IDL único (Protobuf) → tipos Rust / TS |
 | Daemon: marketdata, execution, api | **Rust** |
-| Motor (features, niveles, eventos) | **Rust, una sola librería**; en vivo, replay, backtest y Python vía PyO3 |
-| Research, ML | Python: Polars, LightGBM, PyTorch |
+| Motor (features, niveles, eventos) | **Rust, una sola librería**; en vivo, replay, backtest y datasets |
+| Research, ML | **Rust** (Polars, DuckDB, statrs; GBM/candle a evaluar en M12). Sin Python ([ADR-0012](decisiones/ADR-0012-sin-python.md)); única excepción posible: afinado LoRA, se decide en M11 |
 | Clientes | TypeScript + `ChartScene` + Lightweight Charts v5; **Tauri 2** en PC y Android (mismo front; spike en M3) |
 | Transporte | Connect-RPC/gRPC sobre Tailscale, streams reanudables por cursor ([ADR-0005](decisiones/ADR-0005-topologia-distribuida.md)) |
 | LLM en celular | llama.cpp (+ evaluar QNN/NPU) en proceso aislado |

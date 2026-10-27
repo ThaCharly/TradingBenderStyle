@@ -95,7 +95,7 @@ cada intervalo queda clasificado como `complete`, `recovered` o `incomplete`
 - Nada de iterar mapas sin orden definido.
 - Aleatoriedad sólo con semilla registrada.
 - **Una sola implementación** del motor (librería Rust) usada en vivo, en replay, en
-  backtest y en el pipeline de entrenamiento (vía bindings a Python).
+  backtest y en el pipeline de entrenamiento (todo en Rust, ADR-0012).
 
 ---
 

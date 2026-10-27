@@ -1,14 +1,13 @@
 # Chequeos locales: los mismos que corre la CI (.github/workflows/ci.yml).
-.PHONY: setup check docs rust ts python buf
+.PHONY: setup check docs rust ts buf
 
 setup:
 	pnpm install --frozen-lockfile
-	cd python && uv sync --locked
 
-check: docs rust ts python buf
+check: docs rust ts buf
 
 docs:
-	python3 tools/check_docs_links.py
+	cargo run -q -p bender-devtools --bin check-docs-links
 
 rust:
 	cargo fmt --check
@@ -18,9 +17,6 @@ rust:
 ts:
 	pnpm -r lint
 	pnpm -r test
-
-python:
-	cd python && uv run ruff check && uv run ruff format --check && uv run pytest
 
 buf:
 	pnpm buf:lint
