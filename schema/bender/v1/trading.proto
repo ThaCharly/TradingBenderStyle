@@ -1,0 +1,318 @@
+syntax = "proto3";
+
+package bender.v1;
+
+import "bender/v1/decimal.proto";
+import "bender/v1/identity.proto";
+import "bender/v1/instrument.proto";
+import "bender/v1/market.proto";
+
+// Trading como event sourcing (doc 01 §6): las órdenes, posiciones y saldos son
+// proyecciones de eventos inmutables. Máquinas de estado: doc 06 §3–4.
+
+// Lo que pidió el usuario desde la UI (doc 01 §6.1). Genera varias `Order` agrupadas.
+message OrderIntent {
+  Ulid intent_id = 1;
+  // Dispositivo emparejado que firmó el comando (Pilar 3). [requerido]
+  string device_id = 2;
+  // Clave de idempotencia: el mismo intent reenviado no genera órdenes nuevas. [requerido]
+  string idempotency_key = 3;
+  // Versión del ticket que produjo el intent. [requerido]
+  uint32 ticket_version = 4;
+
+  AccountId account = 5;
+  InstrumentId instrument = 6;
+  // Lado de la entrada: BUY = long, SELL = short.
+  Side side = 7;
+  IntentSize size = 8;
+  // Una o más entradas (escalera); su peso relativo reparte el tamaño.
+  repeated IntentEntry entries = 9;
+  IntentStopLoss stop_loss = 10;
+  repeated IntentTakeProfit take_profits = 11;
+}
+
+// Tamaño del intent: por riesgo o explícito.
+message IntentSize {
+  oneof size {
+    // Fracción del capital arriesgada hasta el stop (0.01 = 1 %).
+    Decimal risk_fraction = 1;
+    // Cantidad total en unidades del activo base.
+    Decimal qty_base = 2;
+  }
+}
+
+message IntentEntry {
+  // Precio límite. Ausente = a mercado.
+  Decimal price = 1;
+  // Peso relativo dentro de la escalera.
+  Decimal weight = 2;
+}
+
+message IntentStopLoss {
+  Decimal trigger_price = 1;
+  TriggerSource trigger_source = 2;
+}
+
+message IntentTakeProfit {
+  oneof target {
+    Decimal price = 1;
+    // Múltiplo de R (distancia entrada–stop), p. ej. 2.
+    Decimal r_multiple = 2;
+  }
+  // Fracción de la posición que cierra (0.5 = 50 %). Ausente = el resto.
+  Decimal fraction = 3;
+}
+
+// Grupo de órdenes de un mismo intent.
+message OrderGroup {
+  Ulid group_id = 1;
+  Ulid intent_id = 2;
+  OrderGroupKind kind = 3;
+  repeated Ulid order_ids = 4;
+}
+
+enum OrderGroupKind {
+  ORDER_GROUP_KIND_UNSPECIFIED = 0;
+  ORDER_GROUP_KIND_BRACKET = 1;
+  ORDER_GROUP_KIND_OCO = 2;
+  ORDER_GROUP_KIND_LADDER = 3;
+}
+
+// Orden canónica, igual para todos los venues (doc 01 §6.2). `status` es la proyección
+// de sus `OrderEvent`.
+message Order {
+  Ulid order_id = 1;
+  // Determinista: hash(saga_id, rol, secuencia) (doc 06 §3, INV-6). [requerido]
+  string client_order_id = 2;
+  // Id que asignó el venue; ausente hasta que lo acepta.
+  optional string venue_order_id = 3;
+  Ulid intent_id = 4;
+  // Ausente si la orden no pertenece a un grupo.
+  Ulid group_id = 5;
+  OrderRole role = 6;
+  InstrumentId instrument = 7;
+  AccountId account = 8;
+  Side side = 9;
+  PositionSide position_side = 10;
+  OrderType type = 11;
+  TimeInForce time_in_force = 12;
+  // Precio límite. Ausente en órdenes a mercado.
+  Decimal price = 13;
+  // Precio de disparo. Sólo órdenes condicionales.
+  Decimal trigger_price = 14;
+  TriggerSource trigger_source = 15;
+  // Cantidad en unidades del activo base. Ausente si `close_position`.
+  Decimal qty_base = 16;
+  // [requerido]
+  bool reduce_only = 17;
+  // "Cerrar toda la posición" sin cantidad (doc 06 §2, INV-2). [requerido]
+  bool close_position = 18;
+  OrderResidence residence = 19;
+  OrderStatus status = 20;
+}
+
+enum OrderRole {
+  ORDER_ROLE_UNSPECIFIED = 0;
+  ORDER_ROLE_ENTRY = 1;
+  ORDER_ROLE_STOP_LOSS = 2;
+  ORDER_ROLE_TAKE_PROFIT = 3;
+  // Cierre pedido por el usuario.
+  ORDER_ROLE_MANUAL_CLOSE = 4;
+  // Cierre de emergencia de la escalera de exposición (doc 06 §5).
+  ORDER_ROLE_EMERGENCY_CLOSE = 5;
+}
+
+enum PositionSide {
+  POSITION_SIDE_UNSPECIFIED = 0;
+  // Modo one-way.
+  POSITION_SIDE_NET = 1;
+  // Modo hedge.
+  POSITION_SIDE_LONG = 2;
+  POSITION_SIDE_SHORT = 3;
+}
+
+enum OrderType {
+  ORDER_TYPE_UNSPECIFIED = 0;
+  ORDER_TYPE_LIMIT = 1;
+  ORDER_TYPE_MARKET = 2;
+  ORDER_TYPE_STOP_MARKET = 3;
+  ORDER_TYPE_STOP_LIMIT = 4;
+  ORDER_TYPE_TAKE_PROFIT_MARKET = 5;
+  ORDER_TYPE_TAKE_PROFIT_LIMIT = 6;
+  ORDER_TYPE_TRAILING_STOP = 7;
+}
+
+enum TimeInForce {
+  TIME_IN_FORCE_UNSPECIFIED = 0;
+  TIME_IN_FORCE_GTC = 1;
+  TIME_IN_FORCE_IOC = 2;
+  TIME_IN_FORCE_FOK = 3;
+  TIME_IN_FORCE_POST_ONLY = 4;
+}
+
+// Dónde vive la orden.
+enum OrderResidence {
+  ORDER_RESIDENCE_UNSPECIFIED = 0;
+  // En el exchange.
+  ORDER_RESIDENCE_VENUE_NATIVE = 1;
+  // Trigger evaluado por `execution` con su propio feed (doc 03 §3).
+  ORDER_RESIDENCE_SERVER_TRIGGER = 2;
+}
+
+// Estados de una orden. Lista normativa: doc 06 §3.
+enum OrderStatus {
+  ORDER_STATUS_UNSPECIFIED = 0;
+  ORDER_STATUS_NEW = 1;
+  ORDER_STATUS_PENDING_SUBMIT = 2;
+  ORDER_STATUS_ACCEPTED = 3;
+  ORDER_STATUS_PARTIALLY_FILLED = 4;
+  ORDER_STATUS_FILLED = 5;
+  ORDER_STATUS_REJECTED = 6;
+  ORDER_STATUS_PENDING_CANCEL = 7;
+  ORDER_STATUS_CANCELED = 8;
+  ORDER_STATUS_EXPIRED = 9;
+  // Trigger de servidor esperando su condición.
+  ORDER_STATUS_ARMED = 10;
+  // Condición cumplida (trigger de servidor o condicional del venue).
+  ORDER_STATUS_TRIGGERED = 11;
+  // Resultado desconocido (timeout o error de red): se consulta, no se reenvía a ciegas.
+  ORDER_STATUS_UNKNOWN = 12;
+}
+
+// Una transición de estado de una orden.
+message OrderEvent {
+  Ulid event_id = 1;
+  Ulid order_id = 2;
+  OrderStatus from_status = 3;
+  OrderStatus to_status = 4;
+  // El venue no informó el estado intermedio y se infirió. [requerido]
+  bool inferred = 5;
+  // Id del venue, si la transición lo trae (p. ej. al aceptarse).
+  optional string venue_order_id = 6;
+  // Motivo de rechazo, cancelación o expiración, si lo hay.
+  optional string reason = 7;
+  // Mensaje crudo del exchange tal como llegó. Ausente si la transición es interna.
+  optional bytes raw = 8;
+}
+
+// Ejecución (doc 01 §6.3).
+message Fill {
+  Ulid fill_id = 1;
+  Ulid order_id = 2;
+  optional string venue_trade_id = 3;
+  Decimal price = 4;
+  Decimal qty_base = 5;
+  Fee fee = 6;
+  Liquidity liquidity = 7;
+  // ns UTC. [requerido]
+  int64 ts_event = 8;
+  // ns UTC. [requerido]
+  int64 ts_received = 9;
+}
+
+message Fee {
+  // Positivo = cobrado; negativo = rebate.
+  Decimal amount = 1;
+  Asset asset = 2;
+}
+
+enum Liquidity {
+  LIQUIDITY_UNSPECIFIED = 0;
+  LIQUIDITY_MAKER = 1;
+  LIQUIDITY_TAKER = 2;
+}
+
+// Asiento del libro contable de una cuenta (doc 01 §6.4). Saldos y PnL son su suma.
+message LedgerEntry {
+  Ulid entry_id = 1;
+  AccountId account = 2;
+  LedgerEntryType type = 3;
+  Asset asset = 4;
+  // Con signo: positivo entra, negativo sale.
+  Decimal amount = 5;
+  // ns UTC. [requerido]
+  int64 ts_event = 6;
+  // Instrumento relacionado (fills, comisiones, funding, liquidación, ADL).
+  InstrumentId instrument = 7;
+  // Fill que originó el asiento, si lo hay.
+  Ulid fill_id = 8;
+  // Referencia del venue (id de transferencia, de funding…).
+  optional string venue_ref_id = 9;
+}
+
+enum LedgerEntryType {
+  LEDGER_ENTRY_TYPE_UNSPECIFIED = 0;
+  LEDGER_ENTRY_TYPE_FILL = 1;
+  LEDGER_ENTRY_TYPE_FEE = 2;
+  LEDGER_ENTRY_TYPE_FUNDING = 3;
+  LEDGER_ENTRY_TYPE_LIQUIDATION = 4;
+  LEDGER_ENTRY_TYPE_ADL = 5;
+  LEDGER_ENTRY_TYPE_TRANSFER = 6;
+  LEDGER_ENTRY_TYPE_DEPOSIT = 7;
+  LEDGER_ENTRY_TYPE_WITHDRAWAL = 8;
+  LEDGER_ENTRY_TYPE_REBATE = 9;
+}
+
+// Posición calculada por nosotros a partir de fills + ledger (doc 01 §6.5).
+message Position {
+  AccountId account = 1;
+  InstrumentId instrument = 2;
+  PositionSide position_side = 3;
+  // Con signo: positivo = long, negativo = short. Unidades del activo base.
+  Decimal qty_base = 4;
+  Decimal avg_entry_price = 5;
+  Decimal realized_pnl = 6;
+  // Contra `mark_price`.
+  Decimal unrealized_pnl = 7;
+  Decimal mark_price = 8;
+  // Moneda del PnL.
+  Asset pnl_asset = 9;
+  // Precio de liquidación estimado por nosotros.
+  Decimal liquidation_price_estimated = 10;
+  // Precio de liquidación según el venue (copia del último `VenuePositionReport`).
+  Decimal liquidation_price_reported = 11;
+}
+
+// Posición tal como la reporta el venue; se usa para reconciliar (doc 06 §7).
+message VenuePositionReport {
+  AccountId account = 1;
+  InstrumentId instrument = 2;
+  PositionSide position_side = 3;
+  // Con signo, en unidades del activo base (convertido por el adaptador).
+  Decimal qty_base = 4;
+  Decimal entry_price = 5;
+  Decimal unrealized_pnl = 6;
+  Decimal liquidation_price = 7;
+  Decimal leverage = 8;
+  // ns UTC. [requerido]
+  int64 ts_event = 9;
+  // ns UTC. [requerido]
+  int64 ts_received = 10;
+  // Mensaje crudo del exchange.
+  optional bytes raw = 11;
+}
+
+// Estados de la saga de un trade de futuros. Lista normativa: doc 06 §4. La lógica de
+// transición es M7.
+enum SagaState {
+  SAGA_STATE_UNSPECIFIED = 0;
+  SAGA_STATE_DRAFT = 1;
+  SAGA_STATE_VALIDATED = 2;
+  SAGA_STATE_PREPARING_ACCOUNT = 3;
+  SAGA_STATE_ARMING_PROTECTION = 4;
+  SAGA_STATE_ENTRY_PENDING = 5;
+  SAGA_STATE_ENTRY_WORKING = 6;
+  SAGA_STATE_PROTECTED = 7;
+  SAGA_STATE_EXPOSED = 8;
+  SAGA_STATE_EMERGENCY_FLATTEN = 9;
+  SAGA_STATE_FLATTENED_SAFE = 10;
+  SAGA_STATE_CLEANUP = 11;
+  SAGA_STATE_CLOSED_NO_FILL = 12;
+  SAGA_STATE_MANAGING = 13;
+  SAGA_STATE_CLOSING = 14;
+  SAGA_STATE_CLOSED = 15;
+  SAGA_STATE_ABORTED = 16;
+  SAGA_STATE_UNCERTAIN = 17;
+  SAGA_STATE_RECONCILING = 18;
+  SAGA_STATE_EXTERNALLY_MODIFIED = 19;
+}

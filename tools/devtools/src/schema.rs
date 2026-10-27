@@ -135,6 +135,47 @@ fn collect_protos(dir: &Path, out: &mut Vec<PathBuf>) -> std::io::Result<()> {
     Ok(())
 }
 
+/// Valores de un enum del esquema sin el prefijo del tipo y sin `*_UNSPECIFIED`.
+/// `ORDER_STATUS_NEW` en `enum OrderStatus` → `NEW`.
+pub fn enum_values(proto: &str, enum_name: &str) -> Vec<String> {
+    let header = format!("enum {enum_name} {{");
+    let prefix: String = enum_name
+        .chars()
+        .enumerate()
+        .flat_map(|(i, c)| {
+            let sep = (i > 0 && c.is_ascii_uppercase()).then_some('_');
+            sep.into_iter()
+                .chain(std::iter::once(c.to_ascii_uppercase()))
+        })
+        .chain(std::iter::once('_'))
+        .collect();
+    proto
+        .lines()
+        .skip_while(|l| l.trim() != header)
+        .skip(1)
+        .take_while(|l| l.trim() != "}")
+        .filter_map(|l| l.split("//").next()?.trim().split_once('='))
+        .filter_map(|(name, _)| name.trim().strip_prefix(&prefix).map(str::to_string))
+        .filter(|v| v != "UNSPECIFIED")
+        .collect()
+}
+
+/// Nombres entre comillas invertidas de la línea del Markdown que empieza con `marker`.
+pub fn doc_list(markdown: &str, marker: &str) -> Vec<String> {
+    markdown
+        .lines()
+        .find(|l| l.starts_with(marker))
+        .map(|l| {
+            l.split('`')
+                .skip(1)
+                .step_by(2)
+                .skip(1) // el nombre del tipo, p. ej. `OrderStatus`
+                .map(str::to_string)
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -178,6 +219,29 @@ mod tests {
         let found = messages(text);
         assert_eq!(found.len(), 1, "{found:?}");
         assert!(found[0].starts_with("4: escalar `string b`"));
+    }
+
+    #[test]
+    fn extracts_enum_values_and_doc_lists() {
+        let proto = "enum OrderStatus {\n  ORDER_STATUS_UNSPECIFIED = 0;\n  // x\n  \
+                     ORDER_STATUS_NEW = 1;\n  ORDER_STATUS_UNKNOWN = 2; // y\n}\n";
+        assert_eq!(enum_values(proto, "OrderStatus"), vec!["NEW", "UNKNOWN"]);
+        let md = "texto\nEstados de `OrderStatus`: `NEW`, `UNKNOWN`.\n";
+        assert_eq!(doc_list(md, "Estados de"), vec!["NEW", "UNKNOWN"]);
+    }
+
+    /// Criterio de #18: los estados coinciden 1:1 con doc 06 §3–4.
+    #[test]
+    fn trading_states_match_doc06() {
+        let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+        let proto = std::fs::read_to_string(root.join("schema/bender/v1/trading.proto")).unwrap();
+        let doc = std::fs::read_to_string(root.join("docs/arquitectura/06-ejecucion-futuros.md"))
+            .unwrap();
+        for name in ["OrderStatus", "SagaState"] {
+            let in_doc = doc_list(&doc, &format!("Estados normativos de `{name}`"));
+            assert!(!in_doc.is_empty(), "falta la lista de {name} en doc 06");
+            assert_eq!(enum_values(&proto, name), in_doc, "{name}");
+        }
     }
 
     #[test]

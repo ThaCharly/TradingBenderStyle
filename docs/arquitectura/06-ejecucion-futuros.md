@@ -70,6 +70,13 @@ NEW ──► PENDING_SUBMIT ──ack──► ACCEPTED ──fill──► PAR
                                                  con el MISMO client_order_id
 ```
 
+Estados normativos de `OrderStatus`: `NEW`, `PENDING_SUBMIT`, `ACCEPTED`, `PARTIALLY_FILLED`, `FILLED`, `REJECTED`, `PENDING_CANCEL`, `CANCELED`, `EXPIRED`, `ARMED`, `TRIGGERED`, `UNKNOWN`.
+
+`ARMED` es el estado de un trigger de servidor que espera su condición (doc 01 §6.2:
+`created → armed → triggered → submitted …`). Esta lista y el enum `OrderStatus` de
+`schema/bender/v1/trading.proto` tienen que coincidir 1:1; lo verifica un test de
+`tools/devtools`.
+
 Reglas:
 - `client_order_id` determinista: `hash(saga_id, rol, secuencia)`. Un duplicado
   rechazado por el exchange significa "ya existe": se consulta, no se reintenta.
@@ -109,6 +116,11 @@ Desde cualquier estado:
   ─► EXTERNALLY_MODIFIED   la posición cambió sin órdenes nuestras (app del exchange,
                            liquidación, ADL) ─► reconciliar ─► re-proteger o cerrar saga
 ```
+
+Estados normativos de `SagaState`: `DRAFT`, `VALIDATED`, `PREPARING_ACCOUNT`, `ARMING_PROTECTION`, `ENTRY_PENDING`, `ENTRY_WORKING`, `PROTECTED`, `EXPOSED`, `EMERGENCY_FLATTEN`, `FLATTENED_SAFE`, `CLEANUP`, `CLOSED_NO_FILL`, `MANAGING`, `CLOSING`, `CLOSED`, `ABORTED`, `UNCERTAIN`, `RECONCILING`, `EXTERNALLY_MODIFIED`.
+
+Esta lista y el enum `SagaState` del esquema tienen que coincidir 1:1 (test de
+`tools/devtools`).
 
 Reglas de interacción entre órdenes del mismo trade:
 - **SL ejecutado con entrada todavía trabajando** → se cancela el resto de la entrada
