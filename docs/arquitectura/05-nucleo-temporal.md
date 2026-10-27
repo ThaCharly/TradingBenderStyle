@@ -105,6 +105,15 @@ Dibujos, niveles marcados, definiciones de alerta y cambios de configuración en
 log como `UserEvent` con `ts_available` = recepción en el servidor. Así "qué tenía
 dibujado el 10 de mayo" es una consulta `as_of`.
 
+- El esquema fija identidad y ciclo de vida (`DrawingUpserted`/`DrawingDeleted`,
+  `LevelMarked`, `AlertDefined`/`AlertRemoved`, `ConfigChanged`). El contenido de cada
+  objeto es un payload opaco con versión propia (`OpaquePayload`), cuyo formato define su
+  dueño.
+- La proyección (`UserProjection`, sobre `VersionedStore`) conserva toda la historia y
+  responde `get(id, as_of)` y `list(as_of)`. Un payload de versión desconocida se guarda
+  igual y queda reportado.
+- La hora que manda el cliente queda en `ts_event`, pero no ordena nada.
+
 ## 8. Consulta `as_of(T)`
 
 `as_of(T)` = estado obtenido de procesar, en orden `K`, todos los eventos con

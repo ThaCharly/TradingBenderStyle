@@ -10,18 +10,66 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file bender/v1/user.proto.
  */
 export const file_bender_v1_user: GenFile = /*@__PURE__*/
-  fileDesc("ChRiZW5kZXIvdjEvdXNlci5wcm90bxIJYmVuZGVyLnYxIgsKCVVzZXJFdmVudGIGcHJvdG8z");
+  fileDesc("ChRiZW5kZXIvdjEvdXNlci5wcm90bxIJYmVuZGVyLnYxIuoCCglVc2VyRXZlbnQSEwoGYXV0aG9yGAEgASgJSAGIAQESNgoQZHJhd2luZ191cHNlcnRlZBgKIAEoCzIaLmJlbmRlci52MS5EcmF3aW5nVXBzZXJ0ZWRIABI0Cg9kcmF3aW5nX2RlbGV0ZWQYCyABKAsyGS5iZW5kZXIudjEuRHJhd2luZ0RlbGV0ZWRIABIuCgxsZXZlbF9tYXJrZWQYDCABKAsyFi5iZW5kZXIudjEuTGV2ZWxNYXJrZWRIABIwCg1hbGVydF9kZWZpbmVkGA0gASgLMhcuYmVuZGVyLnYxLkFsZXJ0RGVmaW5lZEgAEjAKDWFsZXJ0X3JlbW92ZWQYDiABKAsyFy5iZW5kZXIudjEuQWxlcnRSZW1vdmVkSAASMgoOY29uZmlnX2NoYW5nZWQYDyABKAsyGC5iZW5kZXIudjEuQ29uZmlnQ2hhbmdlZEgAQgcKBWV2ZW50QgkKB19hdXRob3IiLgoNT3BhcXVlUGF5bG9hZBIPCgd2ZXJzaW9uGAEgASgNEgwKBGRhdGEYAiABKAwiUAoPRHJhd2luZ1Vwc2VydGVkEhIKCmRyYXdpbmdfaWQYASABKAkSKQoHcGF5bG9hZBgCIAEoCzIYLmJlbmRlci52MS5PcGFxdWVQYXlsb2FkIiQKDkRyYXdpbmdEZWxldGVkEhIKCmRyYXdpbmdfaWQYASABKAkiSgoLTGV2ZWxNYXJrZWQSEAoIbGV2ZWxfaWQYASABKAkSKQoHcGF5bG9hZBgCIAEoCzIYLmJlbmRlci52MS5PcGFxdWVQYXlsb2FkIksKDEFsZXJ0RGVmaW5lZBIQCghhbGVydF9pZBgBIAEoCRIpCgdwYXlsb2FkGAIgASgLMhguYmVuZGVyLnYxLk9wYXF1ZVBheWxvYWQiIAoMQWxlcnRSZW1vdmVkEhAKCGFsZXJ0X2lkGAEgASgJIkcKDUNvbmZpZ0NoYW5nZWQSCwoDa2V5GAEgASgJEikKB3BheWxvYWQYAiABKAsyGC5iZW5kZXIudjEuT3BhcXVlUGF5bG9hZGIGcHJvdG8z");
 
 /**
- * Acción del usuario: dibujos, niveles, alertas, configuración (doc 05 §7).
+ * Acción del usuario: dibujos, niveles, alertas, configuración (doc 05 §7). Entra al log
+ * con `ts_available` = recepción en el servidor, nunca la hora del cliente.
  *
- * Sólo se reserva el tipo para que el sobre quede completo. Las variantes
- * (`DrawingUpserted`, `DrawingDeleted`, …) llegan con #27 (M1-06); agregarlas no rompe
- * compatibilidad.
+ * El contenido de cada objeto es un payload opaco con versión propia: este esquema fija
+ * la identidad y el ciclo de vida; el formato de cada tipo lo define su dueño (p. ej. los
+ * dibujos, #49). Un payload de versión desconocida se conserva tal cual.
  *
  * @generated from message bender.v1.UserEvent
  */
 export type UserEvent = Message<"bender.v1.UserEvent"> & {
+  /**
+   * Quién lo hizo: "user" o "ai:<cliente>" para la capa de IA (doc 09). Ausente = "user".
+   *
+   * @generated from field: optional string author = 1;
+   */
+  author?: string | undefined;
+
+  /**
+   * @generated from oneof bender.v1.UserEvent.event
+   */
+  event: {
+    /**
+     * @generated from field: bender.v1.DrawingUpserted drawing_upserted = 10;
+     */
+    value: DrawingUpserted;
+    case: "drawingUpserted";
+  } | {
+    /**
+     * @generated from field: bender.v1.DrawingDeleted drawing_deleted = 11;
+     */
+    value: DrawingDeleted;
+    case: "drawingDeleted";
+  } | {
+    /**
+     * @generated from field: bender.v1.LevelMarked level_marked = 12;
+     */
+    value: LevelMarked;
+    case: "levelMarked";
+  } | {
+    /**
+     * @generated from field: bender.v1.AlertDefined alert_defined = 13;
+     */
+    value: AlertDefined;
+    case: "alertDefined";
+  } | {
+    /**
+     * @generated from field: bender.v1.AlertRemoved alert_removed = 14;
+     */
+    value: AlertRemoved;
+    case: "alertRemoved";
+  } | {
+    /**
+     * @generated from field: bender.v1.ConfigChanged config_changed = 15;
+     */
+    value: ConfigChanged;
+    case: "configChanged";
+  } | { case: undefined; value?: undefined };
 };
 
 /**
@@ -30,4 +78,174 @@ export type UserEvent = Message<"bender.v1.UserEvent"> & {
  */
 export const UserEventSchema: GenMessage<UserEvent> = /*@__PURE__*/
   messageDesc(file_bender_v1_user, 0);
+
+/**
+ * Contenido opaco de un objeto del usuario, versionado por tipo.
+ *
+ * @generated from message bender.v1.OpaquePayload
+ */
+export type OpaquePayload = Message<"bender.v1.OpaquePayload"> & {
+  /**
+   * Versión del formato del payload para su tipo. [requerido]
+   *
+   * @generated from field: uint32 version = 1;
+   */
+  version: number;
+
+  /**
+   * [requerido]
+   *
+   * @generated from field: bytes data = 2;
+   */
+  data: Uint8Array;
+};
+
+/**
+ * Describes the message bender.v1.OpaquePayload.
+ * Use `create(OpaquePayloadSchema)` to create a new message.
+ */
+export const OpaquePayloadSchema: GenMessage<OpaquePayload> = /*@__PURE__*/
+  messageDesc(file_bender_v1_user, 1);
+
+/**
+ * Crea o reemplaza un dibujo.
+ *
+ * @generated from message bender.v1.DrawingUpserted
+ */
+export type DrawingUpserted = Message<"bender.v1.DrawingUpserted"> & {
+  /**
+   * [requerido]
+   *
+   * @generated from field: string drawing_id = 1;
+   */
+  drawingId: string;
+
+  /**
+   * @generated from field: bender.v1.OpaquePayload payload = 2;
+   */
+  payload?: OpaquePayload | undefined;
+};
+
+/**
+ * Describes the message bender.v1.DrawingUpserted.
+ * Use `create(DrawingUpsertedSchema)` to create a new message.
+ */
+export const DrawingUpsertedSchema: GenMessage<DrawingUpserted> = /*@__PURE__*/
+  messageDesc(file_bender_v1_user, 2);
+
+/**
+ * @generated from message bender.v1.DrawingDeleted
+ */
+export type DrawingDeleted = Message<"bender.v1.DrawingDeleted"> & {
+  /**
+   * [requerido]
+   *
+   * @generated from field: string drawing_id = 1;
+   */
+  drawingId: string;
+};
+
+/**
+ * Describes the message bender.v1.DrawingDeleted.
+ * Use `create(DrawingDeletedSchema)` to create a new message.
+ */
+export const DrawingDeletedSchema: GenMessage<DrawingDeleted> = /*@__PURE__*/
+  messageDesc(file_bender_v1_user, 3);
+
+/**
+ * Marca o actualiza un nivel.
+ *
+ * @generated from message bender.v1.LevelMarked
+ */
+export type LevelMarked = Message<"bender.v1.LevelMarked"> & {
+  /**
+   * [requerido]
+   *
+   * @generated from field: string level_id = 1;
+   */
+  levelId: string;
+
+  /**
+   * @generated from field: bender.v1.OpaquePayload payload = 2;
+   */
+  payload?: OpaquePayload | undefined;
+};
+
+/**
+ * Describes the message bender.v1.LevelMarked.
+ * Use `create(LevelMarkedSchema)` to create a new message.
+ */
+export const LevelMarkedSchema: GenMessage<LevelMarked> = /*@__PURE__*/
+  messageDesc(file_bender_v1_user, 4);
+
+/**
+ * Crea o reemplaza una alerta.
+ *
+ * @generated from message bender.v1.AlertDefined
+ */
+export type AlertDefined = Message<"bender.v1.AlertDefined"> & {
+  /**
+   * [requerido]
+   *
+   * @generated from field: string alert_id = 1;
+   */
+  alertId: string;
+
+  /**
+   * @generated from field: bender.v1.OpaquePayload payload = 2;
+   */
+  payload?: OpaquePayload | undefined;
+};
+
+/**
+ * Describes the message bender.v1.AlertDefined.
+ * Use `create(AlertDefinedSchema)` to create a new message.
+ */
+export const AlertDefinedSchema: GenMessage<AlertDefined> = /*@__PURE__*/
+  messageDesc(file_bender_v1_user, 5);
+
+/**
+ * @generated from message bender.v1.AlertRemoved
+ */
+export type AlertRemoved = Message<"bender.v1.AlertRemoved"> & {
+  /**
+   * [requerido]
+   *
+   * @generated from field: string alert_id = 1;
+   */
+  alertId: string;
+};
+
+/**
+ * Describes the message bender.v1.AlertRemoved.
+ * Use `create(AlertRemovedSchema)` to create a new message.
+ */
+export const AlertRemovedSchema: GenMessage<AlertRemoved> = /*@__PURE__*/
+  messageDesc(file_bender_v1_user, 6);
+
+/**
+ * Cambia un valor de configuración.
+ *
+ * @generated from message bender.v1.ConfigChanged
+ */
+export type ConfigChanged = Message<"bender.v1.ConfigChanged"> & {
+  /**
+   * Clave, p. ej. "chart.theme". [requerido]
+   *
+   * @generated from field: string key = 1;
+   */
+  key: string;
+
+  /**
+   * @generated from field: bender.v1.OpaquePayload payload = 2;
+   */
+  payload?: OpaquePayload | undefined;
+};
+
+/**
+ * Describes the message bender.v1.ConfigChanged.
+ * Use `create(ConfigChangedSchema)` to create a new message.
+ */
+export const ConfigChangedSchema: GenMessage<ConfigChanged> = /*@__PURE__*/
+  messageDesc(file_bender_v1_user, 7);
 
