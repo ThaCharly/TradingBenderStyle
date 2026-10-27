@@ -1,0 +1,25 @@
+[package]
+name = "bender-store"
+version = "0.0.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+description = "Segmentos Parquet append-only, inmutables y direccionables por contenido: zonas cruda y normalizada (doc 02 §2, ADR-0007)."
+
+[lints]
+workspace = true
+
+[dependencies]
+arrow-array = "60"
+arrow-schema = "60"
+bender-types = { path = "../bender-types" }
+blake3 = "1"
+bytes = "1"
+parquet = { version = "60", default-features = false, features = ["arrow", "zstd"] }
+prost = "0.14"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[dev-dependencies]
+proptest = "1"

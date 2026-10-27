@@ -41,6 +41,7 @@ apps/shell/                     Tauri 2 (escritorio + Android)
 deploy/profiles/                perfiles de nodo (server, workstation, phone, dev-all)
 tools/devtools/                 herramientas del repo (check-docs-links, …)
 tools/arch-tests/               tests de arquitectura: rules.toml (grafo, reloj) y eslint-rules.js; ver AGENTES.md
+tools/store-sql/                test de las consultas DuckDB documentadas sobre bender-store
 docs/                           plan, arquitectura, ADRs, roadmap
 ```
 

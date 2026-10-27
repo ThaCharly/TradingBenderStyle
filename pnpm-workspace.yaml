@@ -2,6 +2,7 @@ packages:
   - "apps/client"
   - "apps/client/packages/*"
   - "tools/arch-tests"
+  - "tools/store-sql"
 
 # buf funciona sin su script de instalación (el binario viene en un paquete opcional).
 ignoredBuiltDependencies:

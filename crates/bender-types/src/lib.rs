@@ -7,10 +7,12 @@
 
 mod decimal;
 mod id;
+mod source;
 mod time;
 
 pub use decimal::{Decimal, DecimalError, MAX_SCALE};
 pub use id::{Ulid, UlidError};
+pub use source::source_key;
 pub use time::{DurationNs, TimestampNs};
 
 /// Mensajes generados desde `schema/bender/v1` con `make gen`. No editar a mano.
