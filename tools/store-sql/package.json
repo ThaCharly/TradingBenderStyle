@@ -1,0 +1,13 @@
+{
+  "name": "@bender/store-sql",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "lint": "eslint .",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@duckdb/node-api": "1.5.6-r.1",
+    "vitest": "^5.0.5"
+  }
+}
