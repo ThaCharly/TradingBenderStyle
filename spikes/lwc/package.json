@@ -1,0 +1,20 @@
+{
+  "name": "spike-lwc",
+  "private": true,
+  "type": "module",
+  "description": "Spike #44 (descartable): Lightweight Charts v5 contra los criterios de ADR-0001 §5.",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "measure": "node measure.mjs"
+  },
+  "dependencies": {
+    "fancy-canvas": "2.1.0",
+    "lightweight-charts": "5.2.1"
+  },
+  "devDependencies": {
+    "typescript": "~6.0.3",
+    "vite": "^8.3.5",
+    "vite-plugin-singlefile": "^2.3.0"
+  }
+}

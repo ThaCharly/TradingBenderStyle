@@ -1,0 +1,12 @@
+Spike #44 — PC · dpr 1 · 4 núcleos · 1600×1000
+Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.8010.12 Safari/537.36
+✓ Arrastre (orden, tendencia, rectángulo; 180 muestras): p50 9.7 ms, p95 14.8 ms, máx 17.2 ms (umbral 16 ms)
+✓ Scroll (2.000 velas visibles de 200.000, 50 primitivas, 4 gráficas): 60.0 fps, cuadro p95 16.7 ms (umbral 60 fps)
+✓ Zoom (300 ↔ 30.000 velas visibles): 60.0 fps, cuadro p95 16.7 ms
+✓ Heatmap 1.000×500 con una columna nueva por cuadro: 60.0 fps, cuadro p95 16.7 ms; columna p95 2.2 ms; drawImage p95 0.2 ms; recomposición completa 113.6 ms
+✓ Dibujo en el futuro estable al cambiar de TF: error máx 0.0 px
+    TF 60s: x=516.4 esperado=516.4 (error 0.00 px)
+    TF 300s: x=506.3 esperado=506.3 (error 0.00 px)
+    TF 900s: x=382.8 esperado=382.8 (error 0.00 px)
+    TF 1s: x=814.5 esperado=814.5 (error 0.00 px)
+   (Sin arrastre manual: si arrastrás una orden o la línea antes de medir, también se reporta.)
