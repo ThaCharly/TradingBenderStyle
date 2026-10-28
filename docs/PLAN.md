@@ -54,7 +54,7 @@ Y los principios que se derivan:
 
 | Tema | Decisión |
 |---|---|
-| Servidor | **Mini-PC en casa**, 24/7, con **IP fija** del proveedor; disco **~1 TB** (ampliable; VPS o disco externo si falta) |
+| Servidor | **Portable** ([ADR-0015](decisiones/ADR-0015-servidor-portable.md)): hoy VM de **GCP en Santiago** con IP reservada (créditos); después, posiblemente la mini-PC en casa (IP fija del proveedor, ~1 TB). Sin servicios propios del proveedor |
 | Desarrollo | **PC local** con el perfil `dev-all` (todo en una máquina, en paper); la mini-PC entra cuando haga falta 24/7 |
 | Universo inicial | **BTC y ETH** (spot + perps); tradfi **si es gratis** de poner (ver §4.2 e issue del inventario) |
 | GPU | RTX 5050 8 GB (corre 4B, 9B y MoE 35B a 20–25 t/s) |
@@ -77,7 +77,7 @@ Y los principios que se derivan:
 │  alertas · replay · diario · chat   LLM 4B local                  │
 └───────────────┬───────────────── Tailscale (VPN) ─────────────────┘
                 │ comandos de trading firmados por dispositivo
-┌───────────────▼──────────── Mini-PC (casa, 24/7) ─────────────────┐
+┌───────────────▼──── Servidor 24/7 (GCP Santiago o mini-PC) ───────┐
 │  api ── sólo lectura + reenvío de comandos firmados               │
 │                                                                   │
 │  recorder        runner/engine    query/journal    execution      │
@@ -97,6 +97,9 @@ grande. Cada componente puede moverse de nodo por configuración
 ([doc 07](arquitectura/07-topologia-distribuida.md)).
 
 ### 2.1 Infraestructura en casa: lo que hay que resolver
+
+> Aplica cuando el servidor sea la mini-PC. Con la VM de GCP, la disponibilidad y la IP fija
+> las da el proveedor; las reglas de portabilidad están en [ADR-0015](decisiones/ADR-0015-servidor-portable.md).
 
 - **Acceso remoto**: Tailscale (WireGuard). Ningún puerto abierto a internet.
 - **Cortes de luz**: UPS para la mini-PC y el router. Arranque automático al volver la
@@ -492,7 +495,7 @@ gate de paso a la mini-PC ([ADR-0010](decisiones/ADR-0010-archivado-y-paso-a-pro
 · rama `main` como tronco ([RAMAS.md](RAMAS.md)) · el primer entregable es el
 [prototipo P0](PROTOTIPO.md).
 · MCP de análisis: niveles de datos `mercado` para Claude/Codex y `completo` sólo para el LLM
-local ([ADR-0013](decisiones/ADR-0013-mcp-de-analisis.md)) · sin Python ([ADR-0012](decisiones/ADR-0012-sin-python.md)).
+local ([ADR-0013](decisiones/ADR-0013-mcp-de-analisis.md)) · sin Python ([ADR-0012](decisiones/ADR-0012-sin-python.md)) · servidor portable, hoy GCP Santiago ([ADR-0015](decisiones/ADR-0015-servidor-portable.md)).
 
 ### Diferidas, con su disparador
 | Decisión | Se decide cuando… |

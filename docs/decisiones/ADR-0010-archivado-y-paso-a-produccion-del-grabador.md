@@ -1,6 +1,6 @@
 # ADR-0010 — Archivado de datos irreemplazables y paso del grabador a la mini-PC
 
-- Estado: **aceptada**; las clases de archivado (§1) quedan redefinidas por [ADR-0014](ADR-0014-perfiles-de-grabacion-y-resolucion-base.md): lo persistente del perfil liviano ya es chico, y el archivado pasa a ser opcional para las ventanas rotativas. El gate de la mini-PC (§2) sigue vigente
+- Estado: **aceptada**; las clases de archivado (§1) quedan redefinidas por [ADR-0014](ADR-0014-perfiles-de-grabacion-y-resolucion-base.md): lo persistente del perfil liviano ya es chico, y el archivado pasa a ser opcional para las ventanas rotativas. El gate (§2) sigue vigente, aplicado al servidor de producción que sea ([ADR-0015](ADR-0015-servidor-portable.md))
 - Fecha: 2026-10-27
 - Amplía: [ADR-0009](ADR-0009-presupuesto-de-disco.md) (la retención de ADR-0009 queda
   aprobada como configuración inicial)

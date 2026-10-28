@@ -9,7 +9,7 @@
 
 | Nodo | Rol | Componentes |
 |---|---|---|
-| **Servidor** (mini-PC en casa, 24/7) | núcleo con estado | `recorder`, `store`, `runner` en vivo (motor + alertas), **`execution`** (sólo acá), `api`, `query`, `journal`, `notify` |
+| **Servidor** (24/7; hoy VM de GCP en Santiago, mañana la mini-PC: [ADR-0015](../decisiones/ADR-0015-servidor-portable.md)) | núcleo con estado | `recorder`, `store`, `runner` en vivo (motor + alertas), **`execution`** (sólo acá), `api`, `query`, `journal`, `notify` |
 | **Estación** (PC, con la RTX 5050) | cliente + cómputo pesado | cliente de escritorio, `worker` (backtests, datasets, entrenamiento), `bender-mcp` y el LLM grande (9B / MoE 35B) |
 | **Teléfono** (S25, Android) | cliente + LLM local | cliente Android, LLM 4B en el dispositivo, clave de firma en Keystore |
 
