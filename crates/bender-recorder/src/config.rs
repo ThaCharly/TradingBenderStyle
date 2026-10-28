@@ -4,7 +4,8 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::core::{BookMode, CoreConfig, Instrument};
+use crate::core::{BookMode, CoreConfig, Instrument, Link};
+use bender_types::proto::MarketDataKind;
 use bender_venue_binance::Market;
 
 /// Mercado en el archivo de configuración.
@@ -32,13 +33,17 @@ pub struct InstrumentConfig {
     pub book: BookMode,
 }
 
-/// URLs de Binance (configurables para apuntar a un servidor simulado).
+/// URLs de Binance (configurables para apuntar a un servidor simulado). USDⓈ-M usa dos
+/// conexiones: `/public` (libro, `bookTicker`) y `/market` (trades, mark price,
+/// liquidaciones); la ruta sin sufijo ya no entrega trades (verificado con capturas
+/// reales, 2026-10).
 #[derive(Clone, Debug, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct Endpoints {
     pub spot_ws: String,
     pub spot_rest: String,
-    pub usdm_ws: String,
+    pub usdm_ws_public: String,
+    pub usdm_ws_market: String,
     pub usdm_rest: String,
 }
 
@@ -47,17 +52,19 @@ impl Default for Endpoints {
         Self {
             spot_ws: "wss://stream.binance.com:9443".into(),
             spot_rest: "https://api.binance.com".into(),
-            usdm_ws: "wss://fstream.binance.com".into(),
+            usdm_ws_public: "wss://fstream.binance.com/public".into(),
+            usdm_ws_market: "wss://fstream.binance.com/market".into(),
             usdm_rest: "https://fapi.binance.com".into(),
         }
     }
 }
 
 impl Endpoints {
-    pub fn ws(&self, market: Market) -> &str {
-        match market {
-            Market::Spot => &self.spot_ws,
-            Market::UsdM => &self.usdm_ws,
+    pub fn ws(&self, link: Link) -> &str {
+        match link {
+            Link::Spot => &self.spot_ws,
+            Link::UsdmPublic => &self.usdm_ws_public,
+            Link::UsdmMarket => &self.usdm_ws_market,
         }
     }
 
@@ -184,27 +191,41 @@ impl Config {
         }
     }
 
-    /// Streams del WS combinado de un mercado.
-    pub fn streams(&self, market: Market) -> Vec<String> {
+    /// Streams del WS combinado de una conexión.
+    pub fn streams(&self, link: Link) -> Vec<String> {
         let mut out = Vec::new();
         for i in self
             .instruments
             .iter()
-            .filter(|i| Market::from(i.market) == market)
+            .filter(|i| Market::from(i.market) == link.market())
         {
-            let s = i.symbol.to_ascii_lowercase();
-            out.push(format!("{s}@aggTrade"));
-            out.push(match i.book {
-                BookMode::L2 => format!("{s}@depth@100ms"),
-                BookMode::Top => format!("{s}@bookTicker"),
-            });
-            if market == Market::UsdM {
-                out.push(format!("{s}@markPrice@1s"));
-                out.push(format!("{s}@forceOrder"));
-            }
+            out.extend(link_streams(link, &i.symbol, Some(i.book)));
         }
         out
     }
+}
+
+/// Streams de un símbolo en una conexión. `book = None`: los dos tipos de libro (para
+/// capturar fixtures).
+pub fn link_streams(link: Link, symbol: &str, book: Option<BookMode>) -> Vec<String> {
+    let s = symbol.to_ascii_lowercase();
+    let mut out = Vec::new();
+    if link.carries(MarketDataKind::Trades) {
+        out.push(format!("{s}@aggTrade"));
+    }
+    if link.carries(MarketDataKind::Book) {
+        if book != Some(BookMode::Top) {
+            out.push(format!("{s}@depth@100ms"));
+        }
+        if book != Some(BookMode::L2) {
+            out.push(format!("{s}@bookTicker"));
+        }
+    }
+    if link.market() == Market::UsdM && link.carries(MarketDataKind::MarkPrice) {
+        out.push(format!("{s}@markPrice@1s"));
+        out.push(format!("{s}@forceOrder"));
+    }
+    out
 }
 
 #[cfg(test)]
@@ -224,16 +245,16 @@ mod tests {
         );
         assert_eq!(c.top_n, 20);
         assert_eq!(c.heartbeat_ms, 100);
+        let has = |l: Link, s: &str| c.streams(l).contains(&s.to_string());
+        assert!(has(Link::UsdmPublic, "btcusdt@depth@100ms"));
+        assert!(has(Link::UsdmMarket, "btcusdt@aggTrade"));
+        assert!(has(Link::UsdmMarket, "btcusdt@markPrice@1s"));
+        assert!(!has(Link::UsdmPublic, "btcusdt@aggTrade"));
+        assert!(!has(Link::UsdmMarket, "btcusdt@depth@100ms"));
+        assert!(has(Link::Spot, "btcusdc@bookTicker"));
+        assert!(has(Link::Spot, "btcusdt@aggTrade"));
         assert!(
-            c.streams(Market::UsdM)
-                .contains(&"btcusdt@depth@100ms".to_string())
-        );
-        assert!(
-            c.streams(Market::Spot)
-                .contains(&"btcusdc@bookTicker".to_string())
-        );
-        assert!(
-            !c.streams(Market::Spot)
+            !c.streams(Link::Spot)
                 .iter()
                 .any(|s| s.contains("markPrice"))
         );

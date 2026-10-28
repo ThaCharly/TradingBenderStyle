@@ -4,7 +4,7 @@
 
 use std::collections::BTreeMap;
 
-use bender_recorder::core::{BookMode, Core, CoreConfig, Input, Instrument, Record, Request};
+use bender_recorder::core::{BookMode, Core, CoreConfig, Input, Instrument, Link, Record, Request};
 use bender_types::proto::{self, envelope};
 use bender_venue_binance::Market;
 
@@ -183,10 +183,33 @@ impl Sim {
         self.all_trades.push(t);
         if deliver {
             let raw = t.ws(&self.symbol);
+            let link = match self.market {
+                Market::Spot => Link::Spot,
+                Market::UsdM => Link::UsdmMarket,
+            };
             self.input(Input::Message {
-                market: self.market,
+                link,
                 ts: t.ts_ms * MS + 5 * MS,
                 raw,
+            });
+        }
+    }
+
+    /// Se conectan todas las conexiones del mercado.
+    pub fn connect(&mut self, ts: i64) {
+        for &link in Link::of(self.market) {
+            self.input(Input::Connected { link, ts });
+        }
+    }
+
+    /// Se caen todas las conexiones del mercado.
+    pub fn disconnect(&mut self, ts: i64, reason: proto::GapReason, detail: &str) {
+        for &link in Link::of(self.market) {
+            self.input(Input::Disconnected {
+                link,
+                ts,
+                reason,
+                detail: detail.into(),
             });
         }
     }

@@ -15,7 +15,8 @@ use bender_venue_binance::{Market, Parsed, render};
 use futures_util::StreamExt;
 use tokio_tungstenite::tungstenite::Message;
 
-use crate::config::Config;
+use crate::config::{Config, link_streams};
+use crate::core::Link;
 
 fn prefix(market: Market) -> &'static str {
     match market {
@@ -52,23 +53,23 @@ pub async fn capture(
     let mut written = Vec::new();
     let lower = symbol.to_ascii_lowercase();
     for market in [Market::Spot, Market::UsdM] {
-        let mut streams = vec![
-            format!("{lower}@aggTrade"),
-            format!("{lower}@depth@100ms"),
-            format!("{lower}@bookTicker"),
-        ];
-        if market == Market::UsdM {
-            streams.push(format!("{lower}@markPrice@1s"));
-            streams.push(format!("{lower}@forceOrder"));
+        // Todas las conexiones del mercado, con todos los streams, fusionadas.
+        let mut sockets = Vec::new();
+        let mut urls = Vec::new();
+        for &link in Link::of(market) {
+            let url = format!(
+                "{}/stream?streams={}",
+                config.endpoints.ws(link).trim_end_matches('/'),
+                link_streams(link, &lower, None).join("/")
+            );
+            let (ws, _) = tokio_tungstenite::connect_async(url.as_str())
+                .await
+                .map_err(|e| format!("{url}: {e}"))?;
+            sockets.push(ws);
+            urls.push(url);
         }
-        let url = format!(
-            "{}/stream?streams={}",
-            config.endpoints.ws(market).trim_end_matches('/'),
-            streams.join("/")
-        );
-        let (mut ws, _) = tokio_tungstenite::connect_async(url.as_str())
-            .await
-            .map_err(|e| format!("{url}: {e}"))?;
+        let url = urls.join(" + ");
+        let mut ws = futures_util::stream::select_all(sockets);
         let mut firsts: BTreeMap<&'static str, Vec<u8>> = BTreeMap::new();
         let mut diffs = Vec::new();
         let mut last_agg_id = None;
@@ -161,7 +162,7 @@ pub async fn capture(
             };
             firsts.entry(name).or_insert(raw);
         }
-        let _ = ws.close(None).await;
+        drop(ws);
         let summary: Vec<String> = counts.iter().map(|(k, v)| format!("{k}={v}")).collect();
         eprintln!(
             "{}: {url}\n  mensajes: {}\n  snapshots pedidos: {snapshots}; delta que engancha: {}",

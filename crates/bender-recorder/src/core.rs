@@ -79,24 +79,58 @@ impl CoreConfig {
     }
 }
 
+/// Una conexión WS. Binance separa los streams de USDⓈ-M en dos rutas: `/public` (libro y
+/// `bookTicker`) y `/market` (trades, mark price, liquidaciones); spot va en una sola.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum Link {
+    Spot,
+    UsdmPublic,
+    UsdmMarket,
+}
+
+impl Link {
+    pub const ALL: [Link; 3] = [Link::Spot, Link::UsdmPublic, Link::UsdmMarket];
+
+    pub fn market(self) -> Market {
+        match self {
+            Link::Spot => Market::Spot,
+            Link::UsdmPublic | Link::UsdmMarket => Market::UsdM,
+        }
+    }
+
+    /// Si los datos de `kind` llegan por esta conexión.
+    pub fn carries(self, kind: MarketDataKind) -> bool {
+        let book = matches!(kind, MarketDataKind::Book | MarketDataKind::TopOfBook);
+        match self {
+            Link::Spot => true,
+            Link::UsdmPublic => book,
+            Link::UsdmMarket => !book,
+        }
+    }
+
+    /// Conexiones que necesita un mercado.
+    pub fn of(market: Market) -> &'static [Link] {
+        match market {
+            Market::Spot => &[Link::Spot],
+            Market::UsdM => &[Link::UsdmPublic, Link::UsdmMarket],
+        }
+    }
+}
+
 /// Entrada del núcleo. `ts` es el reloj de pared del grabador (ns UTC) al recibirla.
 #[derive(Clone, Debug)]
 pub enum Input {
-    /// Se estableció la conexión WS de un mercado.
-    Connected { market: Market, ts: i64 },
-    /// Se cayó (o se cerró a pedido) la conexión WS de un mercado.
+    /// Se estableció una conexión WS.
+    Connected { link: Link, ts: i64 },
+    /// Se cayó (o se cerró a pedido) una conexión WS.
     Disconnected {
-        market: Market,
+        link: Link,
         ts: i64,
         reason: GapReason,
         detail: String,
     },
     /// Mensaje del WS.
-    Message {
-        market: Market,
-        ts: i64,
-        raw: Vec<u8>,
-    },
+    Message { link: Link, ts: i64, raw: Vec<u8> },
     /// Respuesta del snapshot REST del libro.
     Snapshot {
         market: Market,
@@ -144,9 +178,9 @@ pub enum Request {
     },
     /// Open interest (USDⓈ-M).
     OpenInterest { symbol: String },
-    /// Cerrar y reabrir la conexión de un mercado.
+    /// Cerrar y reabrir una conexión.
     Reconnect {
-        market: Market,
+        link: Link,
         reason: GapReason,
         detail: String,
     },
@@ -323,7 +357,7 @@ fn snapshot_backoff(retries: u32) -> i64 {
 /// El núcleo del grabador.
 pub struct Core {
     cfg: CoreConfig,
-    conns: BTreeMap<Market, Conn>,
+    conns: BTreeMap<Link, Conn>,
     trades: BTreeMap<(Market, String), TradeState>,
     books: BTreeMap<(Market, String), BookState>,
     seq: BTreeMap<(Zone, String), u64>,
@@ -344,9 +378,10 @@ impl Core {
         let conns = cfg
             .markets()
             .into_iter()
-            .map(|m| {
+            .flat_map(|m| Link::of(m).iter().copied())
+            .map(|l| {
                 (
-                    m,
+                    l,
                     Conn {
                         down: down.clone(),
                         ..Conn::default()
@@ -409,14 +444,14 @@ impl Core {
     pub fn handle(&mut self, input: Input) -> Output {
         let mut out = Output::default();
         match input {
-            Input::Connected { market, ts } => self.on_connected(market, ts, &mut out),
+            Input::Connected { link, ts } => self.on_connected(link, ts, &mut out),
             Input::Disconnected {
-                market,
+                link,
                 ts,
                 reason,
                 detail,
-            } => self.on_disconnected(market, ts, reason, detail),
-            Input::Message { market, ts, raw } => self.on_message(market, ts, raw, &mut out),
+            } => self.on_disconnected(link, ts, reason, detail),
+            Input::Message { link, ts, raw } => self.on_message(link, ts, raw, &mut out),
             Input::Snapshot {
                 market,
                 symbol,
@@ -639,8 +674,9 @@ impl Core {
         kinds
     }
 
-    fn on_connected(&mut self, market: Market, ts: i64, out: &mut Output) {
-        let conn = self.conns.entry(market).or_default();
+    fn on_connected(&mut self, link: Link, ts: i64, out: &mut Output) {
+        let market = link.market();
+        let conn = self.conns.entry(link).or_default();
         conn.up = true;
         conn.last_msg = Some(ts);
         conn.reconnect_requested = false;
@@ -648,7 +684,7 @@ impl Core {
         let instruments: Vec<Instrument> = self.cfg.instruments(market).cloned().collect();
         for i in &instruments {
             if let Some(down) = &down {
-                for kind in Self::ws_sources(i) {
+                for kind in Self::ws_sources(i).into_iter().filter(|k| link.carries(*k)) {
                     let source = bender_venue_binance::source(market, &i.symbol, kind);
                     let key = source_key(&source);
                     if down.reason == GapReason::ProcessDown && !self.known.contains(&key) {
@@ -699,6 +735,9 @@ impl Core {
                 &i.symbol,
                 MarketDataKind::Book,
             ));
+            if !link.carries(MarketDataKind::Book) {
+                continue;
+            }
             if let Some(bs) = self.books.get_mut(&(market, i.symbol.clone())) {
                 if let Some(down) = &down
                     && (down.reason != GapReason::ProcessDown || self.known.contains(&book_key))
@@ -717,8 +756,9 @@ impl Core {
         }
     }
 
-    fn on_disconnected(&mut self, market: Market, ts: i64, reason: GapReason, detail: String) {
-        let conn = self.conns.entry(market).or_default();
+    fn on_disconnected(&mut self, link: Link, ts: i64, reason: GapReason, detail: String) {
+        let market = link.market();
+        let conn = self.conns.entry(link).or_default();
         if !conn.up {
             return;
         }
@@ -729,6 +769,9 @@ impl Core {
             detail: Some(detail),
         };
         conn.down = Some(down.clone());
+        if !link.carries(MarketDataKind::Book) {
+            return;
+        }
         for ((m, _), bs) in self.books.iter_mut() {
             if *m != market {
                 continue;
@@ -743,8 +786,9 @@ impl Core {
         }
     }
 
-    fn on_message(&mut self, market: Market, ts: i64, raw: Vec<u8>, out: &mut Output) {
-        if let Some(conn) = self.conns.get_mut(&market) {
+    fn on_message(&mut self, link: Link, ts: i64, raw: Vec<u8>, out: &mut Output) {
+        let market = link.market();
+        if let Some(conn) = self.conns.get_mut(&link) {
             conn.last_msg = Some(ts);
         }
         let parsed = match bender_venue_binance::parse(&raw) {
@@ -1052,7 +1096,10 @@ impl Core {
             return;
         };
         bs.requested = false;
-        let connected = self.conns.get(&market).is_some_and(|c| c.up);
+        let connected = Link::of(market)
+            .iter()
+            .filter(|l| l.carries(MarketDataKind::Book))
+            .any(|l| self.conns.get(l).is_some_and(|c| c.up));
         let outcome = bender_venue_binance::parse_depth_snapshot(&raw)
             .and_then(|s| bs.book.on_snapshot(&s).map(|o| (s, o)));
         let (snap, snapshot, deltas) = match outcome {
@@ -1129,7 +1176,7 @@ impl Core {
             ts,
             Provenance::Live,
         );
-        for (&market, conn) in self.conns.iter_mut() {
+        for (&link, conn) in self.conns.iter_mut() {
             if conn.up
                 && !conn.reconnect_requested
                 && conn
@@ -1138,7 +1185,7 @@ impl Core {
             {
                 conn.reconnect_requested = true;
                 out.requests.push(Request::Reconnect {
-                    market,
+                    link,
                     reason: GapReason::Stale,
                     detail: format!(
                         "sin mensajes por más de {} ms",
@@ -1173,7 +1220,10 @@ impl Core {
             }
         }
         for ((market, symbol), bs) in self.books.iter_mut() {
-            let up = self.conns.get(market).is_some_and(|c| c.up);
+            let up = Link::of(*market)
+                .iter()
+                .filter(|l| l.carries(MarketDataKind::Book))
+                .any(|l| self.conns.get(l).is_some_and(|c| c.up));
             if up && !bs.requested && bs.retry_at.is_some_and(|t| ts >= t) {
                 bs.requested = true;
                 bs.retry_at = None;

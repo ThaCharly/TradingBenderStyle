@@ -23,7 +23,9 @@ use serde::Deserialize;
 
 #[derive(Default)]
 struct Mock {
+    /// Conexiones a `/market` (trades) y a `/public` (libro).
     connections: AtomicUsize,
+    public_connections: AtomicUsize,
     agg_requests: AtomicUsize,
 }
 
@@ -43,12 +45,19 @@ fn trade_json(id: u64, t: i64) -> String {
     )
 }
 
-async fn ws_handler(ws: WebSocketUpgrade, State(mock): State<Arc<Mock>>) -> impl IntoResponse {
+async fn market_ws(ws: WebSocketUpgrade, State(mock): State<Arc<Mock>>) -> impl IntoResponse {
     let n = mock.connections.fetch_add(1, Ordering::SeqCst);
-    ws.on_upgrade(move |socket| serve(socket, n))
+    ws.on_upgrade(move |socket| serve(socket, n, false))
 }
 
-async fn serve(mut socket: WebSocket, n: usize) {
+async fn public_ws(ws: WebSocketUpgrade, State(mock): State<Arc<Mock>>) -> impl IntoResponse {
+    let n = mock.public_connections.fetch_add(1, Ordering::SeqCst);
+    ws.on_upgrade(move |socket| serve(socket, n, true))
+}
+
+/// Como Binance: `/market` manda los trades y `/public` el libro. Las dos conexiones se
+/// cortan a la vez (se cae la red) después de 50 mensajes.
+async fn serve(mut socket: WebSocket, n: usize, public: bool) {
     let (ids, depth_start) = if n == 0 {
         (1..=50u64, 1000u64)
     } else {
@@ -63,7 +72,7 @@ async fn serve(mut socket: WebSocket, n: usize) {
             1,
         );
         let msg = format!(r#"{{"stream":"btcusdt@aggTrade","data":{trade}}}"#);
-        if socket.send(Message::Text(msg.into())).await.is_err() {
+        if !public && socket.send(Message::Text(msg.into())).await.is_err() {
             return;
         }
         let depth = format!(
@@ -73,7 +82,9 @@ async fn serve(mut socket: WebSocket, n: usize) {
             99_000 + id % 7
         );
         u += 2;
-        let _ = socket.send(Message::Text(depth.into())).await;
+        if public && socket.send(Message::Text(depth.into())).await.is_err() {
+            return;
+        }
         tokio::time::sleep(Duration::from_millis(20)).await;
     }
     if n == 0 {
@@ -107,7 +118,7 @@ struct DepthQuery {}
 
 async fn depth(Query(_): Query<DepthQuery>, State(mock): State<Arc<Mock>>) -> String {
     // Un snapshot que engancha con la conexión actual.
-    let id = if mock.connections.load(Ordering::SeqCst) <= 1 {
+    let id = if mock.public_connections.load(Ordering::SeqCst) <= 1 {
         1000
     } else {
         5000
@@ -138,7 +149,8 @@ fn records_recovers_and_replays_into_bars() {
     let mock = Arc::new(Mock::default());
     let store = rt.block_on(async {
         let app = Router::new()
-            .route("/stream", get(ws_handler))
+            .route("/market/stream", get(market_ws))
+            .route("/public/stream", get(public_ws))
             .route("/fapi/v1/aggTrades", get(agg_trades))
             .route("/fapi/v1/depth", get(depth))
             .route("/fapi/v1/openInterest", get(open_interest))
@@ -158,7 +170,8 @@ fn records_recovers_and_replays_into_bars() {
             endpoints: Endpoints {
                 spot_ws: format!("ws://{addr}"),
                 spot_rest: format!("http://{addr}"),
-                usdm_ws: format!("ws://{addr}"),
+                usdm_ws_public: format!("ws://{addr}/public"),
+                usdm_ws_market: format!("ws://{addr}/market"),
                 usdm_rest: format!("http://{addr}"),
             },
             ..Config::default()
@@ -176,7 +189,12 @@ fn records_recovers_and_replays_into_bars() {
     assert_eq!(
         mock.connections.load(Ordering::SeqCst),
         2,
-        "reconectó una vez"
+        "/market reconectó una vez"
+    );
+    assert_eq!(
+        mock.public_connections.load(Ordering::SeqCst),
+        2,
+        "/public reconectó una vez"
     );
     assert!(
         mock.agg_requests.load(Ordering::SeqCst) >= 1,

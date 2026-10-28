@@ -4,6 +4,19 @@ Primer venue del grabador (#32). Código: `crates/bender-venue-binance` (normali
 libro local) y `crates/bender-recorder` (binario). Sólo datos públicos: el grabador no
 activa la feature `private` y no tiene acceso a claves (Pilar 3).
 
+## Conexiones
+
+| Conexión | URL | Streams |
+|---|---|---|
+| spot | `wss://stream.binance.com:9443/stream` | todos |
+| USDⓈ-M `/public` | `wss://fstream.binance.com/public/stream` | `depth`, `bookTicker` |
+| USDⓈ-M `/market` | `wss://fstream.binance.com/market/stream` | `aggTrade`, `markPrice`, `forceOrder` |
+
+Binance separó los streams de futuros en dos rutas. La ruta sin sufijo
+(`wss://fstream.binance.com/stream`) **ya no entrega trades ni mark price**, sólo el libro:
+verificado con capturas reales (2026-10, `bender-recorder capture`). Cada conexión tiene
+sus propios huecos: si se cae sólo `/market`, el libro no queda `incomplete`.
+
 ## Qué se graba
 
 Universo por defecto (`crates/bender-recorder/recorder.example.toml`): BTCUSDT, ETHUSDT,
@@ -53,7 +66,7 @@ Un `Gap` se emite cuando la fuente vuelve, que es cuando se conocen sus dos bord
 
 | Causa | `reason` | Fuentes | `from_ts` → `to_ts` |
 |---|---|---|---|
-| Se cayó la conexión | `DISCONNECTED` | todas las de la conexión | último mensaje de la conexión → reconexión (el libro: → resincronización) |
+| Se cayó la conexión | `DISCONNECTED` | las que viajan por esa conexión | último mensaje de la conexión → reconexión (el libro: → resincronización) |
 | Silencio de más de 10 s sin cierre | `STALE` | ídem (el grabador cierra y reconecta) | ídem |
 | Salto de ids de trade | `SEQUENCE_BREAK` | trades | trade anterior → trade que salta |
 | Secuencia del libro rota | `SEQUENCE_BREAK` | libro | último delta válido → resincronización |
@@ -69,8 +82,8 @@ La recuperación nunca borra el `Gap`: los trades recuperados llegan con
   20 (perps), `aggTrades` 4 / 20, `openInterest` 1. La recuperación usa como mucho el 50 %
   del presupuesto y va después de los snapshots. Un 429/418 pausa el mercado lo que diga
   `Retry-After`.
-- WS: una conexión por mercado con todos los streams en la URL; reconexión con backoff
-  exponencial de 1 s a 60 s. Binance corta cada conexión a las 24 h: eso deja un hueco
+- WS: una conexión por ruta (spot; USDⓈ-M `/public` y `/market`) con todos los streams en
+  la URL; reconexión con backoff exponencial de 1 s a 60 s. Binance corta cada conexión a las 24 h: eso deja un hueco
   corto (trades recuperados; libro resincronizado).
 
 ## Operación
@@ -99,5 +112,7 @@ cargo run -p bender-recorder -- capture --out crates/bender-venue-binance/tests/
 
 Graba, por mercado, el primer mensaje de cada stream, un snapshot del libro con un delta
 que engancha, una página de `aggTrades` y el open interest, más el `.esperado` de cada uno
-según el normalizador actual. Revisar los `.esperado` a mano antes de commitear; los
-verifica `cargo test -p bender-venue-binance --test fixtures`.
+según el normalizador actual. Al terminar imprime, por mercado, cuántos mensajes llegaron
+de cada stream (sirve para detectar cambios de rutas de Binance como el de `/public` y
+`/market`). Revisar los `.esperado` a mano antes de commitear; los verifica
+`cargo test -p bender-venue-binance --test fixtures`.

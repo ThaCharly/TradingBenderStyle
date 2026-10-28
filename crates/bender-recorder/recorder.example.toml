@@ -26,7 +26,8 @@ reconnect_max_ms = 60000
 [endpoints]
 spot_ws = "wss://stream.binance.com:9443"
 spot_rest = "https://api.binance.com"
-usdm_ws = "wss://fstream.binance.com"
+usdm_ws_public = "wss://fstream.binance.com/public"
+usdm_ws_market = "wss://fstream.binance.com/market"
 usdm_rest = "https://fapi.binance.com"
 
 [rate_limits]

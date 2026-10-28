@@ -1,15 +1,16 @@
-//! Capa de E/S del grabador: una conexión WS por mercado (streams combinados) con
-//! reconexión y backoff, un trabajador REST con límites de tasa y dos prioridades, el
-//! tick del reloj y un hilo que pasa todo por el [`Core`] y escribe en el store.
+//! Capa de E/S del grabador: una conexión WS por [`Link`] (streams combinados; USDⓈ-M
+//! usa dos) con reconexión y backoff, un trabajador REST con límites de tasa y dos
+//! prioridades, el tick del reloj y un hilo que pasa todo por el [`Core`] y escribe en el
+//! store.
 //!
 //! Límites de Binance que se respetan:
 //! - REST: presupuesto de peso por minuto y por mercado (token bucket, configurable); la
 //!   recuperación sólo usa su parte (`recovery_share_percent`) y va después de los
 //!   pedidos de prioridad alta (snapshots del libro, open interest). Un 429/418 pausa el
 //!   mercado lo que diga `Retry-After`.
-//! - WS: una sola conexión por mercado con todos los streams en la URL (sin mensajes de
-//!   suscripción); reconexión con backoff exponencial (1 s … 60 s), así nunca se acerca
-//!   al límite de 300 conexiones cada 5 minutos por IP.
+//! - WS: una conexión por ruta (spot; USDⓈ-M `/public` y `/market`) con todos los
+//!   streams en la URL (sin mensajes de suscripción); reconexión con backoff exponencial
+//!   (1 s … 60 s), así nunca se acerca al límite de 300 conexiones cada 5 minutos por IP.
 
 use std::collections::{BTreeMap, VecDeque};
 use std::time::Duration;
@@ -22,7 +23,7 @@ use tokio::sync::{mpsc, watch};
 use tokio_tungstenite::tungstenite::Message;
 
 use crate::config::Config;
-use crate::core::{Core, Input, Record, Request, Startup};
+use crate::core::{Core, Input, Link, Record, Request, Startup};
 
 /// Reloj de pared en ns UTC.
 pub fn now_ns() -> i64 {
@@ -65,9 +66,8 @@ pub fn weight(market: Market, request: &Request, snapshot_depth: u32) -> u32 {
 
 fn market_of(request: &Request) -> Market {
     match request {
-        Request::Snapshot { market, .. }
-        | Request::AggTrades { market, .. }
-        | Request::Reconnect { market, .. } => *market,
+        Request::Snapshot { market, .. } | Request::AggTrades { market, .. } => *market,
+        Request::Reconnect { link, .. } => link.market(),
         Request::OpenInterest { .. } => Market::UsdM,
     }
 }
@@ -338,9 +338,9 @@ async fn rest_worker(
     }
 }
 
-/// Conexión WS de un mercado, con reconexión.
+/// Una conexión WS, con reconexión.
 async fn ws_task(
-    market: Market,
+    link: Link,
     url: String,
     min_backoff: Duration,
     max_backoff: Duration,
@@ -360,23 +360,20 @@ async fn ws_task(
         match connected {
             Ok((mut ws, _)) => {
                 let since = tokio::time::Instant::now();
-                let _ = tx.send(CoreMsg::Input(Input::Connected {
-                    market,
-                    ts: now_ns(),
-                }));
+                let _ = tx.send(CoreMsg::Input(Input::Connected { link, ts: now_ns() }));
                 let (reason, detail) = loop {
                     tokio::select! {
                         msg = ws.next() => match msg {
                             Some(Ok(Message::Text(t))) => {
                                 let _ = tx.send(CoreMsg::Input(Input::Message {
-                                    market,
+                                    link,
                                     ts: now_ns(),
                                     raw: t.as_bytes().to_vec(),
                                 }));
                             }
                             Some(Ok(Message::Binary(b))) => {
                                 let _ = tx.send(CoreMsg::Input(Input::Message {
-                                    market,
+                                    link,
                                     ts: now_ns(),
                                     raw: b.to_vec(),
                                 }));
@@ -399,9 +396,9 @@ async fn ws_task(
                         }
                     }
                 };
-                log(&format!("{market:?}: desconectado ({detail})"));
+                log(&format!("{link:?}: desconectado ({detail})"));
                 let _ = tx.send(CoreMsg::Input(Input::Disconnected {
-                    market,
+                    link,
                     ts: now_ns(),
                     reason,
                     detail,
@@ -410,7 +407,7 @@ async fn ws_task(
                     backoff = min_backoff;
                 }
             }
-            Err(e) => log(&format!("{market:?}: no se pudo conectar: {e}")),
+            Err(e) => log(&format!("{link:?}: no se pudo conectar: {e}")),
         }
         tokio::select! {
             _ = tokio::time::sleep(backoff) => {},
@@ -420,12 +417,12 @@ async fn ws_task(
     }
 }
 
-/// URL del WS combinado de un mercado.
-pub fn ws_url(config: &Config, market: Market) -> String {
+/// URL del WS combinado de una conexión.
+pub fn ws_url(config: &Config, link: Link) -> String {
     format!(
         "{}/stream?streams={}",
-        config.endpoints.ws(market).trim_end_matches('/'),
-        config.streams(market).join("/")
+        config.endpoints.ws(link).trim_end_matches('/'),
+        config.streams(link).join("/")
     )
 }
 
@@ -443,12 +440,12 @@ pub async fn run(
     let (stop_tx, stop_rx) = watch::channel(false);
     let mut ws_cmds = BTreeMap::new();
     let mut tasks = Vec::new();
-    for &market in &markets {
+    for link in markets.iter().flat_map(|m| Link::of(*m).iter().copied()) {
         let (cmd_tx, cmd_rx) = mpsc::unbounded_channel();
-        ws_cmds.insert(market, cmd_tx);
+        ws_cmds.insert(link, cmd_tx);
         tasks.push(tokio::spawn(ws_task(
-            market,
-            ws_url(&config, market),
+            link,
+            ws_url(&config, link),
             Duration::from_millis(config.reconnect_min_ms),
             Duration::from_millis(config.reconnect_max_ms),
             core_tx.clone(),
@@ -519,11 +516,11 @@ pub async fn run(
             for req in out.requests {
                 match req {
                     Request::Reconnect {
-                        market,
+                        link,
                         reason,
                         detail,
                     } => {
-                        if let Some(c) = ws_cmds.get(&market) {
+                        if let Some(c) = ws_cmds.get(&link) {
                             let _ = c.send((reason, detail));
                         }
                     }

@@ -6,7 +6,7 @@ mod support;
 use std::collections::BTreeSet;
 
 use bender_kernel::CoverageProjection;
-use bender_recorder::core::{BookMode, Core, Input, Record, Startup};
+use bender_recorder::core::{BookMode, Core, Input, Link, Record, Startup};
 use bender_store::{Store, WriterOptions, Zone};
 use bender_types::proto::{
     self, CoverageState, GapReason, Provenance, RecoveryMethod, RecoveryResult,
@@ -48,30 +48,19 @@ fn coverage(
 /// sigue con 701..=800.
 fn cut_60s(sim: &mut Sim) -> (i64, i64) {
     let t0 = 1_761_580_800_000; // ms
-    sim.input(Input::Connected {
-        market: Market::UsdM,
-        ts: t0 * MS - S,
-    });
+    sim.connect(t0 * MS - S);
     for t in trades(1, 100, t0, 100) {
         sim.trade(t, true);
     }
     let last_seen = (t0 + 99 * 100) * MS + 5 * MS;
     let cut = last_seen + 500 * MS;
-    sim.input(Input::Disconnected {
-        market: Market::UsdM,
-        ts: cut,
-        reason: GapReason::Disconnected,
-        detail: "conexión cerrada".into(),
-    });
+    sim.disconnect(cut, GapReason::Disconnected, "conexión cerrada");
     // 600 trades durante el corte (uno cada 100 ms = 60 s).
     for t in trades(101, 700, t0 + 10_000, 100) {
         sim.trade(t, false);
     }
     let reconnect = (t0 + 70_000) * MS;
-    sim.input(Input::Connected {
-        market: Market::UsdM,
-        ts: reconnect,
-    });
+    sim.connect(reconnect);
     for t in trades(701, 800, t0 + 70_050, 100) {
         sim.trade(t, true);
     }
@@ -195,10 +184,7 @@ fn provider_returns_part_of_the_range() {
 fn trade_id_jump_without_disconnect_is_a_gap_and_recovers() {
     let mut sim = sim(BookMode::Top);
     let t0 = 1_761_580_800_000;
-    sim.input(Input::Connected {
-        market: Market::UsdM,
-        ts: t0 * MS,
-    });
+    sim.connect(t0 * MS);
     for t in trades(1, 10, t0, 100) {
         sim.trade(t, true);
     }
@@ -232,16 +218,13 @@ fn book_sequence_break_resyncs_and_leaves_the_interval_incomplete() {
         )
         .into_bytes()
     };
-    sim.input(Input::Connected {
-        market: Market::UsdM,
-        ts: t0,
-    });
+    sim.connect(t0);
     // El snapshot llega antes que los deltas (latencia 50 ms): los deltas se aplican.
     let mut u = 999;
     for i in 0..10 {
         let ts = t0 + 100 * MS * (i + 1);
         sim.input(Input::Message {
-            market: Market::UsdM,
+            link: Link::UsdmPublic,
             ts,
             raw: depth(u + 1, u + 5, u, ts / MS, 90 + i),
         });
@@ -252,7 +235,7 @@ fn book_sequence_break_resyncs_and_leaves_the_interval_incomplete() {
     sim.snapshot = Some((u + 100, vec![(100, 3)], vec![(101, 3)]));
     let break_ts = last_good + 100 * MS;
     sim.input(Input::Message {
-        market: Market::UsdM,
+        link: Link::UsdmPublic,
         ts: break_ts,
         raw: depth(u + 50, u + 60, u + 40, break_ts / MS, 80),
     });
@@ -283,7 +266,7 @@ fn book_sequence_break_resyncs_and_leaves_the_interval_incomplete() {
     assert_eq!(snapshots, 2);
     let ts = resync + 10 * MS;
     sim.input(Input::Message {
-        market: Market::UsdM,
+        link: Link::UsdmPublic,
         ts,
         raw: depth(u + 61, u + 120, u + 60, ts / MS, 81),
     });
@@ -300,24 +283,38 @@ fn book_sequence_break_resyncs_and_leaves_the_interval_incomplete() {
 fn stale_connection_requests_a_reconnect() {
     let mut sim = sim(BookMode::Top);
     let t0 = 1_761_580_800_000i64 * MS;
-    sim.input(Input::Connected {
-        market: Market::UsdM,
-        ts: t0,
-    });
+    sim.connect(t0);
     sim.tick(t0 + 5 * S);
     assert!(
         !sim.requests
             .iter()
             .any(|r| matches!(r, bender_recorder::core::Request::Reconnect { .. }))
     );
+    // Llega un trade por `/market`; `/public` sigue en silencio.
+    sim.trade(
+        Trade {
+            id: 1,
+            ts_ms: (t0 + 9 * S) / MS,
+            price: 100_000,
+        },
+        true,
+    );
     sim.tick(t0 + 11 * S);
     sim.tick(t0 + 12 * S);
-    let reconnects = sim
+    let reconnects: Vec<Link> = sim
         .requests
         .iter()
-        .filter(|r| matches!(r, bender_recorder::core::Request::Reconnect { reason, .. } if *reason == GapReason::Stale))
-        .count();
-    assert_eq!(reconnects, 1);
+        .filter_map(|r| match r {
+            bender_recorder::core::Request::Reconnect { link, reason, .. }
+                if *reason == GapReason::Stale =>
+            {
+                Some(*link)
+            }
+            _ => None,
+        })
+        .collect();
+    // Sólo la conexión callada, una sola vez.
+    assert_eq!(reconnects, vec![Link::UsdmPublic]);
 }
 
 fn temp_dir(tag: &str) -> std::path::PathBuf {
@@ -356,10 +353,7 @@ fn restart_after_shutdown_leaves_a_gap_and_recovers() {
             Startup::from_store(&store).unwrap(),
         );
         let mut sim = Sim::new(core, Market::UsdM, "BTCUSDT");
-        sim.input(Input::Connected {
-            market: Market::UsdM,
-            ts: t0 * MS,
-        });
+        sim.connect(t0 * MS);
         for t in &all[..50] {
             sim.trade(*t, true);
             sim.tick(t.ts_ms * MS + 10 * MS);
@@ -380,10 +374,7 @@ fn restart_after_shutdown_leaves_a_gap_and_recovers() {
     let mut sim = Sim::new(core, Market::UsdM, "BTCUSDT");
     sim.all_trades = all.clone();
     let start = last_heartbeat + 30 * S;
-    sim.input(Input::Connected {
-        market: Market::UsdM,
-        ts: start,
-    });
+    sim.connect(start);
     sim.trade(
         Trade {
             id: 401,
@@ -415,4 +406,31 @@ fn restart_after_shutdown_leaves_a_gap_and_recovers() {
     store.close_all().unwrap();
     assert!(store.last_ingest_seq(Zone::Normalized, TRADES).unwrap() > 50);
     let _ = std::fs::remove_dir_all(&dir);
+}
+
+#[test]
+fn each_usdm_link_has_its_own_gaps() {
+    let mut sim = sim(BookMode::Top);
+    let t0 = 1_761_580_800_000i64;
+    sim.connect(t0 * MS);
+    for t in trades(1, 10, t0, 100) {
+        sim.trade(t, true);
+    }
+    // Se cae sólo `/market` (trades, mark, funding…); `/public` sigue.
+    let cut = (t0 + 1_000) * MS;
+    sim.input(Input::Disconnected {
+        link: Link::UsdmMarket,
+        ts: cut,
+        reason: GapReason::Disconnected,
+        detail: "cerrada".into(),
+    });
+    sim.input(Input::Connected {
+        link: Link::UsdmMarket,
+        ts: cut + 5 * S,
+    });
+    for kind in ["trades", "mark_price", "funding", "liquidations"] {
+        let ev = sim.of_source(&format!("BINANCE:PERP_LINEAR:BTCUSDT:{kind}"));
+        assert_eq!(gaps(&ev).len(), 1, "{kind}");
+    }
+    assert!(gaps(&sim.of_source("BINANCE:PERP_LINEAR:BTCUSDT:top_of_book")).is_empty());
 }
