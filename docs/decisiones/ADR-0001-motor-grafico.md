@@ -93,3 +93,57 @@ El issue del spike (#44) implementa con A: velas de 1 s con 200k barras, un perf
 volumen anclado, una línea de tendencia y un rectángulo arrastrables, una línea de orden
 arrastrable, un dibujo anclado en el futuro, 4 gráficas sincronizadas, y mide los
 criterios de §5 en PC y en el S25 (WebView de Tauri). El resultado se registra en esta ADR.
+
+## 7. Resultado del spike (#44)
+
+Prototipo en [`spikes/lwc/`](../../spikes/lwc/README.md): Lightweight Charts 5.2.1, velas
+de 1 s con 200.000 barras, 36 niveles + 10 líneas de orden + línea de tendencia +
+rectángulo + rectángulo anclado en el futuro + 2 perfiles de volumen (50+ primitivas),
+heatmap 1.000 × 500 y 4 gráficas (1s, 1m, 5m, 15m) sincronizadas por tiempo. El botón
+**Medir** corre todas las mediciones en el dispositivo.
+
+Cómo se mide:
+- **Arrastre**: desde el `timeStamp` del evento de puntero hasta el primer cuadro en el que
+  la primitiva ya pintó el estado nuevo (incluye la espera del vsync). Automático: 180
+  movimientos sintéticos en momentos al azar entre cuadros; manual: los arrastres hechos
+  con el mouse o el dedo antes de medir.
+- **Scroll / zoom**: intervalo entre cuadros mientras se mueve el rango visible en cada
+  cuadro (2.000 velas visibles; zoom de 300 a 30.000), con las 4 gráficas sincronizadas.
+  La tasa está topeada por la pantalla, así que se aprueba con el 95 % del objetivo.
+- **Heatmap**: cuadro completo con una columna nueva del libro por cuadro (búfer circular
+  en un `OffscreenCanvas`, dos `drawImage` en una primitiva).
+- **Futuro**: posición del rectángulo anclado a +3 min de la última vela en 1m, 5m, 15m y
+  1s, contra la esperada por el espaciado de barras.
+
+| Criterio (§5) | Chromium headless, 4 núcleos, sin GPU | S25 (WebView de la app de Claude, Android 16) | PC del dueño | Umbral |
+|---|---|---|---|---|
+| Arrastre, automático | p95 14,8 ms | p95 12,3 ms | pendiente | ≤ 16 ms PC, ≤ 33 ms S25 |
+| Arrastre, con el dedo | — | p95 22,2 ms (21 muestras) | pendiente | ≤ 33 ms |
+| Scroll, 200k velas + 50 primitivas + 4 gráficas | 60 fps (p95 16,7 ms) | 80 fps (p95 12,6 ms; tope de la pantalla) | pendiente | ≥ 60 PC, ≥ 30 S25 |
+| Zoom | 60 fps | 80 fps | pendiente | ídem |
+| Heatmap 1.000 × 500 por cuadro | p95 16,7 ms (columna 2,2 ms; `drawImage` 0,2 ms) | p95 12,6 ms (columna 0,7 ms; `drawImage` 0,1 ms) | pendiente | ≤ 16 ms PC |
+| Dibujo en el futuro estable al cambiar de TF | error 0 px | error 0 px | pendiente | estable |
+
+**Decisión: ADR-0001 confirmada** (pendiente sólo la medición en la PC del dueño, que no
+cambia la decisión salvo un resultado muy distinto del headless, que corre sin GPU).
+
+Limitaciones encontradas:
+1. **`logicalToCoordinate` sólo acepta índices enteros**: con uno fraccionario devuelve 0.
+   Todo dibujo cuyo tiempo no cae justo en una vela (por ejemplo, una línea trazada en 1 s
+   vista en 5m) se dibujaba en el borde izquierdo. Resuelto: el adaptador interpola entre
+   los dos enteros vecinos (`logicalX` en el spike). Va al adaptador `render-lwc`.
+2. **Tiempo ↔ índice lógico es nuestro**: la escala es por índice de barras. El spike
+   convierte tiempo de dominio → índice (interpolando dentro de los datos y extrapolando a
+   la derecha con la temporalidad); así los dibujos anclados en el futuro quedan en el
+   mismo instante en cualquier TF. Resuelto en la capa de escena.
+3. **Sincronizar gráficas de distinta temporalidad** se hace por tiempo, no por índice:
+   cada gráfica convierte el rango visible de la que se movió. Funciona; hay que evitar
+   el rebote de eventos (bandera mientras se sincroniza).
+4. **Arrastre**: no viene en la librería. La capa propia (hit-test en `pointerdown` en fase
+   de captura, `handleScroll`/`handleScale` apagados durante el gesto) funcionó con mouse y
+   con el dedo sin que la gráfica se desplace.
+5. **Heatmap**: recomponer las 500.000 celdas tarda 110–170 ms (headless y S25), así que se
+   hace sólo cuando cambia el rango de precios; cada actualización del libro escribe una
+   columna (≤ 2,2 ms).
+6. Etiquetas de órdenes en el eje de precio: con `priceAxisViews` de la primitiva; se
+   superponen si hay muchas juntas (a resolver en la UI, no es un límite de la librería).
