@@ -74,6 +74,11 @@ pub async fn capture(
         let mut last_agg_id = None;
         let mut snapshot: Option<Vec<u8>> = None;
         let mut delta: Option<Vec<u8>> = None;
+        // Mensajes recibidos por stream, deltas desde el último snapshot y snapshots
+        // pedidos (para diagnosticar desde la terminal).
+        let mut counts: BTreeMap<String, u64> = BTreeMap::new();
+        let mut since_snapshot = 0u32;
+        let mut snapshots = 0u32;
         let deadline = tokio::time::Instant::now() + Duration::from_secs(seconds);
         let rest = config.endpoints.rest(market).trim_end_matches('/');
         let api = match market {
@@ -96,8 +101,17 @@ pub async fn capture(
                 None => break,
             };
             let Ok(parsed) = bender_venue_binance::parse(&raw) else {
+                *counts.entry("(no reconocido)".into()).or_default() += 1;
                 continue;
             };
+            let stream = match &parsed {
+                Parsed::AggTrade(_) => "aggTrade",
+                Parsed::Depth(_) => "depth",
+                Parsed::BookTicker(_) => "bookTicker",
+                Parsed::MarkPrice(_) => "markPrice",
+                Parsed::ForceOrder(_) => "forceOrder",
+            };
+            *counts.entry(stream.into()).or_default() += 1;
             let name = match &parsed {
                 Parsed::AggTrade(t) => {
                     last_agg_id = Some(t.agg_id);
@@ -108,7 +122,15 @@ pub async fn capture(
                 Parsed::ForceOrder(_) => "forceorder",
                 Parsed::Depth(d) => {
                     diffs.push((d.clone(), raw.clone()));
-                    if snapshot.is_none() && diffs.len() >= 5 {
+                    since_snapshot += 1;
+                    // Si el snapshot quedó viejo (ningún delta engancha), se pide otro.
+                    let stale = snapshot.is_some() && delta.is_none() && since_snapshot >= 30;
+                    if stale {
+                        diffs.drain(..diffs.len().saturating_sub(5));
+                    }
+                    if (snapshot.is_none() && diffs.len() >= 5) || stale {
+                        since_snapshot = 0;
+                        snapshots += 1;
                         snapshot = Some(
                             get(
                                 &client,
@@ -140,6 +162,17 @@ pub async fn capture(
             firsts.entry(name).or_insert(raw);
         }
         let _ = ws.close(None).await;
+        let summary: Vec<String> = counts.iter().map(|(k, v)| format!("{k}={v}")).collect();
+        eprintln!(
+            "{}: {url}\n  mensajes: {}\n  snapshots pedidos: {snapshots}; delta que engancha: {}",
+            prefix(market),
+            if summary.is_empty() {
+                "ninguno".into()
+            } else {
+                summary.join(", ")
+            },
+            if delta.is_some() { "sí" } else { "no" }
+        );
         let mut files: Vec<(String, Vec<u8>)> = firsts
             .into_iter()
             .map(|(name, raw)| (format!("{}_{name}", prefix(market)), raw))

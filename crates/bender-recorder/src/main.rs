@@ -3,7 +3,8 @@
 //! - `bender-recorder run --store <carpeta> [--config <archivo.toml>]`: graba hasta Ctrl+C.
 //! - `bender-recorder report --store <carpeta>`: reporte en Markdown.
 //! - `bender-recorder capture --out <carpeta> [--symbol BTCUSDT] [--seconds 120]`:
-//!   fixtures reales para los tests del normalizador.
+//!   fixtures reales para los tests del normalizador (`--usdm-ws` cambia la URL del WS
+//!   de perps).
 
 use std::process::ExitCode;
 
@@ -31,7 +32,7 @@ fn load_config(args: &[String]) -> Result<Config, String> {
 const USAGE: &str = "uso:
   bender-recorder run --store <carpeta> [--config <archivo.toml>]
   bender-recorder report --store <carpeta>
-  bender-recorder capture --out <carpeta> [--symbol BTCUSDT] [--seconds 120] [--config <archivo.toml>]";
+  bender-recorder capture --out <carpeta> [--symbol BTCUSDT] [--seconds 120] [--usdm-ws <url>] [--config <archivo.toml>]";
 
 fn main() -> ExitCode {
     let args: Vec<String> = std::env::args().collect();
@@ -90,7 +91,10 @@ fn capture(args: &[String]) -> Result<(), String> {
     let seconds = arg(args, "--seconds")
         .and_then(|s| s.parse().ok())
         .unwrap_or(120);
-    let config = load_config(args)?;
+    let mut config = load_config(args)?;
+    if let Some(url) = arg(args, "--usdm-ws") {
+        config.endpoints.usdm_ws = url;
+    }
     let rt = runtime()?;
     let written = rt.block_on(bender_recorder::capture::capture(
         &config,
