@@ -3,6 +3,7 @@
 Un TradingView personal: sin ruido, con ejecución en la gráfica, un motor de mercado con
 fundamento auditable y un diario de trading. Un solo usuario, local-first.
 
+- **Qué hace la aplicación**: [docs/FUNCIONALIDADES.md](docs/FUNCIONALIDADES.md)
 - Plan y arquitectura: [docs/PLAN.md](docs/PLAN.md)
 - Primer entregable: [docs/PROTOTIPO.md](docs/PROTOTIPO.md)
 - Para empezar a trabajar: [docs/TRASPASO.md](docs/TRASPASO.md)

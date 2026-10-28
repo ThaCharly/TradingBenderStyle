@@ -19,6 +19,7 @@ Mapa de documentos:
   [08 aislamiento del LLM](arquitectura/08-aislamiento-llm.md) ·
   [09 MCP de análisis](arquitectura/09-mcp-de-analisis.md)
 - Decisiones: [ADRs](decisiones/README.md)
+- Resumen para el dueño: [FUNCIONALIDADES](FUNCIONALIDADES.md)
 - Trabajo: [PROTOTIPO inicial](PROTOTIPO.md) · [ROADMAP](ROADMAP.md) (milestones e issues) · [guía para agentes](AGENTES.md) · [estrategia de ramas](RAMAS.md) · [archivado vs respaldo](operacion/archivado-vs-respaldo.md)
 
 ---
