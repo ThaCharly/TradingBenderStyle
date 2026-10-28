@@ -46,9 +46,9 @@ otra máquina Linux. El código no sabe ni le importa dónde corre.
 - Costo aproximado: unos 25–45 USD por mes entre VM, disco, IP y tráfico de salida. Con
   190 USD alcanza para unos 4–7 meses. Son cifras de referencia: hay que confirmarlas en
   la calculadora de GCP para `southamerica-west1`.
-- **Si los créditos son de la prueba gratuita, vencen** (en general a los 90 días de
-  activada la cuenta). La fecha de vencimiento define cuándo hay que tener lista la
-  migración. Hay que confirmarla en la consola de facturación.
+- **Los créditos vencen el 2 de diciembre de 2026** (confirmado por el usuario). Es la
+  fecha límite para migrar o pasar a pagar. La migración (#181) tiene que estar probada
+  con margen: el objetivo es tenerla lista a mediados de noviembre.
 - Alerta de presupuesto en GCP al 50%, 80% y 100% de los créditos.
 
 ### 4. Lo que cambia en un VPS respecto de la casa
