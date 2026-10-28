@@ -507,4 +507,5 @@ local ([ADR-0013](decisiones/ADR-0013-mcp-de-analisis.md)) · sin Python ([ADR-0
 | Confirmar Lightweight Charts | termine el spike #44 |
 | Compra de datos tradfi intradía | se cierre M9 (#133) |
 | Exchanges secundarios para operar | terminen los spikes #79–#82 |
+| Dónde sigue el servidor después de los créditos de GCP (mini-PC, pagar GCP u otro proveedor) | antes del **2 de diciembre de 2026**, con la migración (#181) probada a mediados de noviembre |
 | VPS o disco extra (y encender el archivado de L2 crudo) | el monitoreo de disco (#43) proyecte < 90 días de espacio, o se quiera conservar el L2 crudo |
