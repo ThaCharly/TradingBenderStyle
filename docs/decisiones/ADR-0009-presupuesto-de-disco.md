@@ -1,6 +1,6 @@
 # ADR-0009 — Presupuesto de disco y retención (~1 TB en la mini-PC)
 
-- Estado: **aceptada como configuración inicial**, se revisa con las mediciones de #32
+- Estado: **reemplazada en su política de retención** por [ADR-0014](ADR-0014-perfiles-de-grabacion-y-resolucion-base.md) (perfiles de grabación). Se conserva como registro de las estimaciones originales
 - Ampliada por: [ADR-0010](ADR-0010-archivado-y-paso-a-produccion-del-grabador.md) (archivado antes de borrar; gate de la mini-PC)
 - Fecha: 2026-10-27
 - Número: la ADR-0008 queda reservada para el spike #45 (shell móvil y push)

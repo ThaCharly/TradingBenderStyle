@@ -17,7 +17,8 @@ En tu PC, sin teléfono, sin exchange con claves, sin motor ni LLM:
    libro, funding, mark price.
 3. Abrís el navegador en `localhost` y ves **una gráfica 4H + 30m sincronizadas**,
    construida **con tus propios datos grabados**, actualizándose en vivo. Podés pasar a
-   cualquier temporalidad, de 1 s a 1 D.
+   cualquier temporalidad, de 1 m a 1 año (las de segundos, sólo dentro de la ventana de
+   trades crudos; ADR-0014).
 4. Dibujás líneas horizontales, de tendencia y rectángulos, y quedan guardados.
 5. **Desenchufás internet un minuto.** Al volver, el grabador se recupera solo y la
    gráfica muestra el hueco marcado, en vez de inventar velas.
@@ -60,8 +61,10 @@ Lo que puede ir en paralelo: el spike de gráfica (#44) arranca apenas existe el
 
 ## Después de P0
 
-- **P1 — Grabador en producción**: retención y archivado (#43, #139), calidad de datos
-  (#42), specs de instrumentos (#33), resto de los exchanges (#34–#37) y el **gate** de
+- **P1 — Grabador en producción** (ADR-0014): perfiles y ventanas rotativas (#43), volumen
+  por banda (#174), liquidez por banda (#175), procedencia y términos (#176), archivado
+  opcional (#139), calidad de datos (#42), specs de instrumentos (#33), resto de los
+  exchanges (#34–#37), compresión (#177) y el **gate** de
   paso a la mini-PC (#140).
 - Después siguen los milestones en el orden del [ROADMAP](ROADMAP.md): alertas, paper y
   spot, futuros, motor…

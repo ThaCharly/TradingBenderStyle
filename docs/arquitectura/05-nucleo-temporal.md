@@ -80,6 +80,11 @@ Los δ son parte de la configuración versionada y se registran en el manifiesto
   el día 1 del mes.
 - Temporalidades estándar: 1s, 5s, 15s, 1m, 3m, 5m, 15m, 30m, 1h, 2h, 4h, 6h, 12h, 1D, 3D,
   1W, 1M, 3M, 1Y. Todas se agregan **desde los trades**, sin derivar unas de otras.
+- **Perfil liviano** ([ADR-0014](../decisiones/ADR-0014-perfiles-de-grabacion-y-resolucion-base.md)):
+  la vela de 1m se arma desde trades como siempre, pero fuera de la ventana de trades
+  crudos las temporalidades ≥ 1m se derivan **de las velas de 1m persistidas** (es exacto
+  porque todas están alineadas a múltiplos de minuto) y las de segundos no existen. Una
+  revisión de una vela de 1m se propaga a las derivadas.
 - Una vela de `[t, t+d)` **cierra** cuando la marca de agua de su fuente alcanza `t+d`
   (`max ts_event − L ≥ t+d`), o cuando llega un latido con `ts_available ≥ t + d + L`, lo
   que ocurra primero.

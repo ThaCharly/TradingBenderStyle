@@ -37,6 +37,13 @@ Por dependencias, siempre tomando el primero desbloqueado:
 Después de P0: P1 (grabador en producción) y la base del MCP (#143), según el
 [ROADMAP](ROADMAP.md).
 
+**Cambio de almacenamiento ([ADR-0014](decisiones/ADR-0014-perfiles-de-grabacion-y-resolucion-base.md)):**
+perfiles de grabación (liviano por defecto, al tick opcional), base de 1m con resúmenes por
+banda de precio, historia descargada por el usuario de la fuente oficial y términos de uso
+por dato. El grabador de P0 (#32) se termina según su issue y lo nuevo va en issues
+aparte: #43 (perfiles y ventanas), #174, #175, #176, #177, más ajustes en #39–#41, #46,
+#48, #50 y #139. El núcleo temporal ya mergeado no cambia: sigue soportando segundos.
+
 ## 4. Cómo se trabaja cada issue
 
 Reglas completas en [AGENTES.md](AGENTES.md) y [RAMAS.md](RAMAS.md). En resumen:
