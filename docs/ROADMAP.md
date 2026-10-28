@@ -51,7 +51,8 @@ graph LR
 
 Lo primero que se construye: grabador de Binance BTC/ETH + gráfica local con máquina del
 tiempo, en la PC. Qué incluye, qué demuestra y qué no: [PROTOTIPO.md](PROTOTIPO.md).
-Después, **P1 — grabador en producción**: #33, #42, #43, #139, #34–#37 y el gate #140; y la
+Después, **P1 — grabador en producción**: #43, #174, #175, #176, #139, #42, #33, #34–#37, #177
+y el gate #140; y la
 **base del MCP** (#144–#147, #149).
 
 ## Por dónde empezar (sin dependencias pendientes)
@@ -102,15 +103,19 @@ Después, **P1 — grabador en producción**: #33, #42, #43, #139, #34–#37 y e
 | M2-05 | #36 Grabador BingX | #32, #33 |
 | M2-06 | #37 Grabador MEXC | #32, #33 |
 | M2-07 | #38 Re-normalización versionada | #32 |
-| M2-08 | #39 Backfill Binance | #22, #24 |
-| M2-09 | #40 Backfill Bitstamp + Coinbase | #39 |
-| M2-10 | #41 Backfill Bybit | #39 |
+| M2-08 | #39 Importación de archivos oficiales de Binance (descarga del usuario) | #22, #24 |
+| M2-09 | #40 Importación Bitstamp + Coinbase (descarga del usuario) | #39 |
+| M2-10 | #41 Importación de archivos oficiales de Bybit (descarga del usuario) | #39 |
 | M2-11 | #42 Calidad de datos | #32, #39 |
-| M2-12 | #43 Operación del grabador y retención (ADR-0009) | #32 |
+| M2-12 | #43 Operación del grabador: perfiles de grabación y ventanas rotativas (ADR-0014) | #32 |
 | M2-13 | #138 Spike: inventario de tradfi gratuito | #33 |
-| M2-14 | #139 Archivado comprimido de datos irreemplazables | #22, #43 |
+| M2-14 | #139 Archivado comprimido opcional de las ventanas rotativas | #22, #43 |
 | M2-15 | #140 Gate de producción y migración a la mini-PC | #32, #42, #43, #139 |
 | M2-16 | #156 Validación de velas propias vs oficiales de Binance (P0) | #32, #25 |
+| M2-17 | #174 Volumen por banda de precio por minuto | #25, #32 |
+| M2-18 | #175 Resumen de liquidez por banda y minuto (heatmap) | #32, #24 |
+| M2-19 | #176 Procedencia y términos de uso por segmento | #22 |
+| M2-20 | #177 Spike: compresión (Parquet contra formato propio) | #174, #175 |
 
 ## M3 — Gráfica · épico #5
 
@@ -122,7 +127,7 @@ Después, **P1 — grabador en producción**: #33, #42, #43, #139, #34–#37 y e
 | M3-04 | #47 chart-scene | #19, #44 |
 | M3-05 | #48 render-lwc base | #44, #47, #46 |
 | M3-06 | #49 Herramientas de dibujo e interacción | #48 |
-| M3-07 | #50 Perfiles de volumen y VWAP en el motor | #46, #26 |
+| M3-07 | #50 Perfiles de volumen y VWAP en el motor | #46, #26, #174 |
 | M3-08 | #51 Render de perfiles + herramienta | #50, #49 |
 | M3-09 | #52 Indicadores en el motor + render | #46, #48 |
 | M3-10 | #53 Universo curado | #46, #33 |

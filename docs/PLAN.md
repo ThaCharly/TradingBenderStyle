@@ -58,7 +58,7 @@ Y los principios que se derivan:
 | Universo inicial | **BTC y ETH** (spot + perps); tradfi **si es gratis** de poner (ver §4.2 e issue del inventario) |
 | GPU | RTX 5050 8 GB (corre 4B, 9B y MoE 35B a 20–25 t/s) |
 | LLM en el celular | Samsung S25 (Snapdragon 8 Elite, 12 GB) → **4B en el dispositivo** |
-| Temporalidades | **Todas**, de 1 segundo a 1 año, más personalizadas. Uso principal: **4H y 30m** |
+| Temporalidades | De 1 minuto a 1 año (segundos sólo dentro de la ventana de trades o con el perfil al tick, [ADR-0014](decisiones/ADR-0014-perfiles-de-grabacion-y-resolucion-base.md)). Uso principal: **4H y 30m**; al menos 2m y 5m |
 | Rangos y canales | Desde el punto actual hacia atrás hasta donde **empieza el canal**. Los canales inclinados existen pero **no** son lo mismo que los rangos de área. **Las definiciones de análisis técnico se cierran más adelante** (§8.1) |
 | Volumen | **Multi-venue, spot y perps**: Binance, BloFin, BingX, MEXC, Bybit… |
 | Dispositivos | **Operar, alertas y mirar en PC y celular** por igual |
@@ -134,6 +134,11 @@ Detalle del modelo en el [Pilar 1](arquitectura/01-modelo-de-datos.md).
 ## 4. Datos
 
 ### 4.1 Cripto: multi-venue, spot y perps
+
+> **Actualizado por [ADR-0014](decisiones/ADR-0014-perfiles-de-grabacion-y-resolucion-base.md)**: perfiles de grabación (liviano por defecto, al tick
+> opcional), base de 1 minuto con resúmenes por banda de precio, historia descargada por el
+> usuario de la fuente oficial y términos de uso por dato. Donde esta sección contradiga a
+> la ADR, manda la ADR.
 
 **Grabador en vivo desde la Fase 1**, de todos los venues: trades, libro (L2 parcial),
 mark/index, funding, open interest, liquidaciones. Cada día grabado es historia perfecta
@@ -219,7 +224,10 @@ comprimido. Planear un disco dedicado de varios TB.
 - **Los indicadores y perfiles se calculan en `bender-engine`** y se sirven por `query`:
   la gráfica nunca calcula por su cuenta (una sola implementación para gráfica y alertas).
 
-### 5.2 Temporalidades: de 1 segundo a 1 año
+### 5.2 Temporalidades: de 1 minuto a 1 año
+
+> Perfil liviano: mínimo 1m persistido; segundos sólo dentro de la ventana de trades o con
+> el perfil al tick ([ADR-0014](decisiones/ADR-0014-perfiles-de-grabacion-y-resolucion-base.md)).
 
 - Todo se agrega desde **trades**. Velas pre-calculadas (rollups) para las estándar:
   1s, 5s, 15s, 1m, 3m, 5m, 15m, **30m**, 1h, 2h, **4h**, 6h, 12h, 1D, 3D, 1W, 1M, 3M, 1Y.
