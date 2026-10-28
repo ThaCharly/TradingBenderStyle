@@ -101,7 +101,8 @@ Estados: **planificado** · **en construcción** · **hecho** · **diferido** (c
 
 | Funcionalidad | Cuándo | Estado |
 |---|---|---|
-| Servidor 24/7 (mini-PC en casa) | M4 | **en revisión**: posible VPS |
+| Servidor 24/7 portable: hoy VM de GCP en Santiago, mañana la mini-PC, sin depender del proveedor | M4 | planificado |
+| Migración de servidor con una herramienta y un simulacro probado | M4 (#181) | planificado |
 | PC para desarrollo, cómputo pesado y LLM grande | — | definido |
 | Acceso remoto privado (Tailscale), nada expuesto a internet | M4 | planificado |
 | Respaldo de datos | — | diferido; obligatorio antes de operar con plata real |

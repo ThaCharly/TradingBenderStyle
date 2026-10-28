@@ -110,7 +110,7 @@ y el gate #140; y la
 | M2-12 | #43 Operación del grabador: perfiles de grabación y ventanas rotativas (ADR-0014) | #32 |
 | M2-13 | #138 Spike: inventario de tradfi gratuito | #33 |
 | M2-14 | #139 Archivado comprimido opcional de las ventanas rotativas | #22, #43 |
-| M2-15 | #140 Gate de producción y migración a la mini-PC | #32, #42, #43, #139 |
+| M2-15 | #140 Gate de producción y paso al servidor de producción | #32, #42, #43, #181 |
 | M2-16 | #156 Validación de velas propias vs oficiales de Binance (P0) | #32, #25 |
 | M2-17 | #174 Volumen por banda de precio por minuto | #25, #32 |
 | M2-18 | #175 Resumen de liquidez por banda y minuto (heatmap) | #32, #24 |
@@ -141,11 +141,12 @@ y el gate #140; y la
 | M4-01 | #56 bender-api con alcances | #21 |
 | M4-02 | #57 Emparejamiento y firma de comandos | #56 |
 | M4-03 | #58 Firma en Android Keystore con biometría | #57, #55 |
-| M4-04 | #59 Perfiles de despliegue, usuarios, ACL, firewall | #21 |
+| M4-04 | #59 Perfiles de despliegue portables (contenedores), usuarios, ACL, firewall | #21 |
 | M4-05 | #60 Leases y cola de trabajos | #21 |
 | M4-06 | #61 Sincronización de segmentos por hash | #22, #21 |
-| M4-07 | #62 Infra doméstica (UPS, watchdog, IP fija) | #59 |
+| M4-07 | #62 Infraestructura del servidor: VM de GCP hoy, mini-PC después | #59 |
 | M4-08 | #155 Lanzador `dev-all` mínimo (P0) | #32, #46, #48 |
+| M4-09 | #181 Herramienta y simulacro de migración del servidor | #59, #22 |
 
 ## M5 — Alertas · épico #7
 

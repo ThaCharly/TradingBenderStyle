@@ -16,6 +16,7 @@
 | [0012](ADR-0012-sin-python.md) | Sin Python: research, estadística y herramientas en Rust; LoRA se decide en M11 | aceptada |
 | [0013](ADR-0013-mcp-de-analisis.md) | Servidor MCP de análisis para Claude, Codex y el LLM local; sesiones ancladas a un instante; escritura sólo en la capa de IA | aceptada |
 | [0014](ADR-0014-perfiles-de-grabacion-y-resolucion-base.md) | Perfiles de grabación (liviano / al tick), base de 1m con resúmenes por banda de precio, historia descargada por el usuario de la fuente oficial, términos de uso por dato | aceptada |
+| [0015](ADR-0015-servidor-portable.md) | Servidor portable: hoy VM de GCP en Santiago, migrable a la mini-PC; sin servicios administrados del proveedor | aceptada |
 
 Formato: contexto → decisión → alternativas descartadas → consecuencias. Una ADR aceptada
 no se edita para cambiar la decisión: se escribe una nueva que la reemplaza.

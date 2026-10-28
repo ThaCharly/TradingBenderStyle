@@ -1,6 +1,6 @@
 # ADR-0005 — Componentes desplegables en máquinas distintas
 
-- Estado: **aceptada**
+- Estado: **aceptada**; ampliada por [ADR-0015](ADR-0015-servidor-portable.md) (servidor portable entre proveedores)
 - Fecha: 2026-10-27
 - Diseño: [07-topologia-distribuida.md](../arquitectura/07-topologia-distribuida.md)
 
