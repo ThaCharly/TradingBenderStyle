@@ -268,9 +268,10 @@ y el gate #140; y la
 
 | ID | Issue | Bloqueado por |
 |---|---|---|
-| M14-01 | #135 Elliott | #97, #112 |
+| M14-01 | #135 Elliott automático (conteos propuestos con puntaje) | #179, #97, #112 |
 | M14-02 | #136 DSL de indicadores | #52, #63 |
 | M14-03 | #137 Footprint y heatmap | #48, #32 |
+| M14-04 | #179 Herramienta de ondas de Elliott (conteo manual con validación) | #49, #47 |
 
 ## M15 — MCP de análisis · épico #143 ([ADR-0013](decisiones/ADR-0013-mcp-de-analisis.md))
 

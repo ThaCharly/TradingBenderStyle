@@ -55,6 +55,8 @@ Reglas completas en [AGENTES.md](AGENTES.md) y [RAMAS.md](RAMAS.md). En resumen:
 - **Merge**: la sesión de ejecución mergea con squash cuando la CI está en verde y todos los
   criterios están verificados. Si algo no se pudo cumplir, no mergea y lo explica.
 - Marcar el issue en #141.
+- Si el issue entrega una funcionalidad visible, actualizar su **Estado** en
+  [FUNCIONALIDADES.md](FUNCIONALIDADES.md) en el mismo PR.
 
 ## 5. Lo que necesita la PC del usuario
 
