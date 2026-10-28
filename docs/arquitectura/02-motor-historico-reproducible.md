@@ -87,6 +87,11 @@ permite. Los datos recuperados llevan `provenance = recovered`, el `Gap` nunca s
 cada intervalo queda clasificado como `complete`, `recovered` o `incomplete`
 ([ADR-0011](../decisiones/ADR-0011-completitud-de-datos-y-recuperacion-de-huecos.md)).
 
+Implementación (#32): el `Gap` se emite cuando la fuente vuelve, que es cuando se conocen
+sus dos bordes (`to_ts` = primer dato visto después, como define el esquema); su
+`ts_available` es ese instante. Detalle por causa y recuperabilidad de cada tipo de dato:
+[`docs/venues/binance.md`](../venues/binance.md).
+
 ---
 
 ## 6. Reglas de determinismo (para el código del motor)

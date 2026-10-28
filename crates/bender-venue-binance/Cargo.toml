@@ -1,0 +1,21 @@
+[package]
+name = "bender-venue-binance"
+version = "0.0.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+description = "Adaptador de Binance (spot + USDⓈ-M): normalizador puro de datos públicos y libro local."
+
+[features]
+# Capacidades de trading privado (órdenes, cuenta). Sólo bender-execution puede activarla
+# (Pilar 3, tools/arch-tests/rules.toml). Hoy no agrega nada.
+private = []
+
+[lints]
+workspace = true
+
+[dependencies]
+bender-types = { path = "../bender-types" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"

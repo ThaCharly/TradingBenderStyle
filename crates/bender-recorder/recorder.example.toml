@@ -1,0 +1,75 @@
+# Configuración del grabador (bender-recorder run --config <archivo>). Estos son los
+# valores por defecto: un archivo vacío da lo mismo.
+
+# Niveles por lado del libro L2 (ADR-0009).
+top_n = 20
+# Profundidad del snapshot REST para sincronizar el libro.
+snapshot_depth = 1000
+# Snapshot del top-N grabado cada tanto (para empezar un replay a mitad del día).
+book_snapshot_every_s = 60
+# Latidos (fuente CLOCK).
+heartbeat_ms = 100
+# Silencio de una conexión que se trata como caída.
+stale_after_s = 10
+open_interest_every_s = 60
+# Recuperación de trades por REST: trades por página y páginas como máximo por hueco.
+recovery_page = 1000
+max_recovery_pages = 5000
+# Tamaño máximo de cada segmento del store (filas y MiB de datos); los segmentos abiertos
+# viven en memoria.
+segment_rows = 200000
+segment_mib = 16
+# Reconexión con backoff exponencial.
+reconnect_min_ms = 1000
+reconnect_max_ms = 60000
+
+[endpoints]
+spot_ws = "wss://stream.binance.com:9443"
+spot_rest = "https://api.binance.com"
+usdm_ws = "wss://fstream.binance.com"
+usdm_rest = "https://fapi.binance.com"
+
+[rate_limits]
+spot_weight_per_minute = 3000
+usdm_weight_per_minute = 1200
+recovery_share_percent = 50
+
+[[instruments]]
+market = "spot"
+symbol = "BTCUSDT"
+book = "l2"
+
+[[instruments]]
+market = "spot"
+symbol = "ETHUSDT"
+book = "l2"
+
+[[instruments]]
+market = "spot"
+symbol = "BTCUSDC"
+book = "top"
+
+[[instruments]]
+market = "spot"
+symbol = "ETHUSDC"
+book = "top"
+
+[[instruments]]
+market = "usdm"
+symbol = "BTCUSDT"
+book = "l2"
+
+[[instruments]]
+market = "usdm"
+symbol = "ETHUSDT"
+book = "l2"
+
+[[instruments]]
+market = "usdm"
+symbol = "BTCUSDC"
+book = "top"
+
+[[instruments]]
+market = "usdm"
+symbol = "ETHUSDC"
+book = "top"
