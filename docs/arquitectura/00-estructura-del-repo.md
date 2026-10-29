@@ -43,6 +43,7 @@ tools/devtools/                 herramientas del repo (check-docs-links, …)
 tools/arch-tests/               tests de arquitectura: rules.toml (grafo, reloj) y eslint-rules.js; ver AGENTES.md
 tools/store-sql/                test de las consultas DuckDB documentadas sobre bender-store
 docs/                           plan, arquitectura, ADRs, roadmap
+  venues/                       un archivo por venue: qué se graba, huecos y recuperabilidad (ADR-0011)
 ```
 
 ## Herramientas

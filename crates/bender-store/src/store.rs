@@ -21,11 +21,17 @@ const WAL_NAME: &str = "open.wal";
 pub struct WriterOptions {
     /// Filas máximas por segmento: al llegar, se cierra y se abre otro.
     pub max_rows: usize,
+    /// Bytes de datos máximos por segmento (el segmento abierto vive en memoria): al
+    /// llegar, se cierra y se abre otro.
+    pub max_bytes: usize,
 }
 
 impl Default for WriterOptions {
     fn default() -> Self {
-        Self { max_rows: 500_000 }
+        Self {
+            max_rows: 500_000,
+            max_bytes: 256 * 1024 * 1024,
+        }
     }
 }
 
@@ -340,14 +346,16 @@ impl Store {
                 wal,
                 wal_path,
                 rows: Vec::new(),
+                bytes: 0,
             });
         }
         let state = self.open.get_mut(&key).expect("estado");
         let open = state.segment.as_mut().expect("segmento abierto");
         open.wal.append(&row)?;
         state.last = Some(row.ingest_seq);
+        open.bytes += row.data.len();
         open.rows.push(row);
-        if open.rows.len() >= options.max_rows {
+        if open.rows.len() >= options.max_rows || open.bytes >= options.max_bytes {
             self.close_source_with(zone, source, CrashPoint::None)?;
         }
         Ok(())
@@ -410,31 +418,55 @@ impl Store {
         segments.sort_by_key(|s| s.ingest_seq_min);
         let mut out = Vec::new();
         for s in segments {
-            let path = self.root.join(&s.path);
-            let bytes = std::fs::read(&path).map_err(|e| match e.kind() {
-                std::io::ErrorKind::NotFound => StoreError::MissingSegment(path.clone()),
-                _ => StoreError::Io(e),
-            })?;
-            let actual = blake3::hash(&bytes).to_hex().to_string();
-            if actual != s.file_hash {
-                return Err(StoreError::Integrity {
-                    path,
-                    expected: s.file_hash.clone(),
-                    actual,
-                });
-            }
-            let rows = read_parquet(zone, bytes)?;
-            let content = content_hash(zone, &s.source, &s.normalizer_version, &rows);
-            if content != s.content_hash {
-                return Err(StoreError::Integrity {
-                    path,
-                    expected: s.content_hash.clone(),
-                    actual: content,
-                });
-            }
+            let rows = self.read_segment_rows(s)?;
             out.extend(rows.into_iter().filter(|r| r.ts >= from && r.ts < to));
         }
         Ok(out)
+    }
+
+    /// Filas de un segmento cerrado, verificando su integridad (hash del archivo y del
+    /// contenido).
+    fn read_segment_rows(&self, s: &SegmentInfo) -> Result<Vec<Row>, StoreError> {
+        let path = self.root.join(&s.path);
+        let bytes = std::fs::read(&path).map_err(|e| match e.kind() {
+            std::io::ErrorKind::NotFound => StoreError::MissingSegment(path.clone()),
+            _ => StoreError::Io(e),
+        })?;
+        let actual = blake3::hash(&bytes).to_hex().to_string();
+        if actual != s.file_hash {
+            return Err(StoreError::Integrity {
+                path,
+                expected: s.file_hash.clone(),
+                actual,
+            });
+        }
+        let rows = read_parquet(s.zone, bytes)?;
+        let content = content_hash(s.zone, &s.source, &s.normalizer_version, &rows);
+        if content != s.content_hash {
+            return Err(StoreError::Integrity {
+                path,
+                expected: s.content_hash.clone(),
+                actual: content,
+            });
+        }
+        Ok(rows)
+    }
+
+    /// `Envelope`s de un segmento de la zona normalizada (uno de [`Store::segments`]), en
+    /// orden de `ingest_seq`. Sirve para recorrer una fuente grande de a un segmento.
+    pub fn read_segment(&self, segment: &SegmentInfo) -> Result<Vec<proto::Envelope>, StoreError> {
+        if segment.zone != Zone::Normalized {
+            return Err(StoreError::Decode(
+                "read_segment es para la zona normalizada".into(),
+            ));
+        }
+        self.read_segment_rows(segment)?
+            .into_iter()
+            .map(|r| {
+                proto::Envelope::decode(r.data.as_slice())
+                    .map_err(|e| StoreError::Decode(e.to_string()))
+            })
+            .collect()
     }
 
     /// `Envelope`s de una fuente con `ts_available` en `[from, to)`, en orden de
@@ -546,6 +578,8 @@ struct OpenSegment {
     wal: Wal,
     wal_path: PathBuf,
     rows: Vec<Row>,
+    /// Suma de los bytes de datos de `rows`.
+    bytes: usize,
 }
 
 struct OpenState {
@@ -633,7 +667,14 @@ mod crash_tests {
         let root = temp_root(tag);
         {
             let mut store = Store::open(&root).unwrap();
-            let mut w = store.normalized_writer(SRC, "norm-1", WriterOptions { max_rows: 7 });
+            let mut w = store.normalized_writer(
+                SRC,
+                "norm-1",
+                WriterOptions {
+                    max_rows: 7,
+                    ..WriterOptions::default()
+                },
+            );
             for seq in 1..=n {
                 w.append_envelope(&env(seq)).unwrap();
             }
@@ -654,7 +695,14 @@ mod crash_tests {
         let resume_from = store.last_ingest_seq(Zone::Normalized, SRC).unwrap_or(0);
         assert!(resume_from <= n);
         {
-            let mut w = store.normalized_writer(SRC, "norm-1", WriterOptions { max_rows: 7 });
+            let mut w = store.normalized_writer(
+                SRC,
+                "norm-1",
+                WriterOptions {
+                    max_rows: 7,
+                    ..WriterOptions::default()
+                },
+            );
             for seq in resume_from + 1..=total {
                 w.append_envelope(&env(seq)).unwrap();
             }
@@ -730,6 +778,26 @@ mod crash_tests {
                 .len(),
             3
         );
+        std::fs::remove_dir_all(&root).unwrap();
+    }
+
+    #[test]
+    fn segments_roll_by_bytes() {
+        let root = temp_root("bytes");
+        let mut store = Store::open(&root).unwrap();
+        let size = env(1).encoded_len();
+        let options = WriterOptions {
+            max_rows: usize::MAX,
+            max_bytes: size * 4,
+        };
+        for seq in 1..=10 {
+            store
+                .append_envelope(SRC, "norm-1", &options, &env(seq))
+                .unwrap();
+        }
+        store.close_all().unwrap();
+        let rows: Vec<u64> = store.segments().iter().map(|s| s.rows).collect();
+        assert_eq!(rows, vec![4, 4, 2]);
         std::fs::remove_dir_all(&root).unwrap();
     }
 }
