@@ -418,31 +418,55 @@ impl Store {
         segments.sort_by_key(|s| s.ingest_seq_min);
         let mut out = Vec::new();
         for s in segments {
-            let path = self.root.join(&s.path);
-            let bytes = std::fs::read(&path).map_err(|e| match e.kind() {
-                std::io::ErrorKind::NotFound => StoreError::MissingSegment(path.clone()),
-                _ => StoreError::Io(e),
-            })?;
-            let actual = blake3::hash(&bytes).to_hex().to_string();
-            if actual != s.file_hash {
-                return Err(StoreError::Integrity {
-                    path,
-                    expected: s.file_hash.clone(),
-                    actual,
-                });
-            }
-            let rows = read_parquet(zone, bytes)?;
-            let content = content_hash(zone, &s.source, &s.normalizer_version, &rows);
-            if content != s.content_hash {
-                return Err(StoreError::Integrity {
-                    path,
-                    expected: s.content_hash.clone(),
-                    actual: content,
-                });
-            }
+            let rows = self.read_segment_rows(s)?;
             out.extend(rows.into_iter().filter(|r| r.ts >= from && r.ts < to));
         }
         Ok(out)
+    }
+
+    /// Filas de un segmento cerrado, verificando su integridad (hash del archivo y del
+    /// contenido).
+    fn read_segment_rows(&self, s: &SegmentInfo) -> Result<Vec<Row>, StoreError> {
+        let path = self.root.join(&s.path);
+        let bytes = std::fs::read(&path).map_err(|e| match e.kind() {
+            std::io::ErrorKind::NotFound => StoreError::MissingSegment(path.clone()),
+            _ => StoreError::Io(e),
+        })?;
+        let actual = blake3::hash(&bytes).to_hex().to_string();
+        if actual != s.file_hash {
+            return Err(StoreError::Integrity {
+                path,
+                expected: s.file_hash.clone(),
+                actual,
+            });
+        }
+        let rows = read_parquet(s.zone, bytes)?;
+        let content = content_hash(s.zone, &s.source, &s.normalizer_version, &rows);
+        if content != s.content_hash {
+            return Err(StoreError::Integrity {
+                path,
+                expected: s.content_hash.clone(),
+                actual: content,
+            });
+        }
+        Ok(rows)
+    }
+
+    /// `Envelope`s de un segmento de la zona normalizada (uno de [`Store::segments`]), en
+    /// orden de `ingest_seq`. Sirve para recorrer una fuente grande de a un segmento.
+    pub fn read_segment(&self, segment: &SegmentInfo) -> Result<Vec<proto::Envelope>, StoreError> {
+        if segment.zone != Zone::Normalized {
+            return Err(StoreError::Decode(
+                "read_segment es para la zona normalizada".into(),
+            ));
+        }
+        self.read_segment_rows(segment)?
+            .into_iter()
+            .map(|r| {
+                proto::Envelope::decode(r.data.as_slice())
+                    .map_err(|e| StoreError::Decode(e.to_string()))
+            })
+            .collect()
     }
 
     /// `Envelope`s de una fuente con `ts_available` en `[from, to)`, en orden de

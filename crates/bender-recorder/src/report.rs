@@ -87,17 +87,16 @@ impl Report {
                 });
             }
         }
-        let normalized: Vec<String> = r
-            .sources
-            .keys()
-            .filter(|(z, s)| *z == Zone::Normalized && s != "CLOCK")
-            .map(|(_, s)| s.clone())
-            .collect();
-        for source in normalized {
-            for e in store.read_normalized(&source, i64::MIN, i64::MAX)? {
+        // De a un segmento por vez: la memoria queda acotada al segmento más grande, no a
+        // la fuente entera (un día de libro son millones de eventos).
+        for seg in store.segments() {
+            if seg.zone != Zone::Normalized || seg.source == "CLOCK" {
+                continue;
+            }
+            for e in store.read_segment(seg)? {
                 let stats = r
                     .sources
-                    .get_mut(&(Zone::Normalized, source.clone()))
+                    .get_mut(&(Zone::Normalized, seg.source.clone()))
                     .expect("fuente");
                 match &e.payload {
                     Some(envelope::Payload::Gap(g)) => {
